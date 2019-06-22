@@ -2,15 +2,13 @@ package httpwrap
 
 import "reflect"
 
-var _errorType = reflect.TypeOf(error(nil))
-
-type mainFn struct {
+type afterFn struct {
 	val      reflect.Value
 	inTypes  []reflect.Type
 	outTypes []reflect.Type
 }
 
-func newMain(fn interface{}) (mainFn, error) {
+func newAfter(fn interface{}) (afterFn, error) {
 	val := reflect.ValueOf(fn)
 	fnType := val.Type()
 	inTypes, outTypes := []reflect.Type{}, []reflect.Type{}
@@ -21,36 +19,35 @@ func newMain(fn interface{}) (mainFn, error) {
 		outTypes = append(outTypes, fnType.Out(i))
 	}
 
-	// TODO: Assert that input types is never interface.
-	// TODO: Assert that first output type isnt error if len(outs) >= 2.
-	return mainFn{
+	// TODO: number of intypes that are emptyInterface <= 1
+	// TODO: number of intypes that are error <= 1
+	return afterFn{
 		val:      val,
 		inTypes:  inTypes,
 		outTypes: outTypes,
 	}, nil
 }
 
-func (fn mainFn) run(ctx *runctx) interface{} {
+func (fn afterFn) run(ctx *runctx) {
 	inputs := make([]reflect.Value, len(fn.inTypes))
 	for i, inType := range fn.inTypes {
-		if val, found := ctx.results[inType]; found {
+		if inType == _emptyInterfaceType {
+			inputs[i] = ctx.response
+			continue
+		} else if val, found := ctx.results[inType]; found {
 			inputs[i] = val
 			continue
 		}
-		inputs[i] = ctx.construct(inType)
+
+		input, err := ctx.construct(inType)
+		if err != nil {
+			ctx.provide(_errorType, reflect.ValueOf(err))
+		}
+		inputs[i] = input
 	}
 
 	outs := fn.val.Call(inputs)
-	if len(outs) == 0 {
-		return nil
-	}
-
 	for i := 0; i < len(outs); i++ {
 		ctx.Provide(fn.outTypes[i], outs[i])
 	}
-
-	if len(outs) == 1 && fn.outTypes[0] == _errorType {
-		return nil
-	}
-	return outs[0].Interface()
 }

@@ -1,39 +1,42 @@
-package main
+package httpwrap
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"net/http"
+	"reflect"
 )
 
-// Context contains the raw http request and response interfaces, as
-// well as all of the previous results.
-type Context struct {
-	Res http.ResponseWriter
-	Req *http.Request
+type runctx struct {
+	w    http.ResponseWriter
+	req  *http.Request
+	cons Constructor
 
-	Results []Result
-
-	bodies [][]byte
+	response reflect.Value
+	results  map[reflect.Type]reflect.Value
 }
 
-func newContext(w http.ResponseWriter, req *http.Request) (Context, error) {
-	body, err := ioutil.ReadAll(req.Body)
-	return Context{
-		Res:    w,
-		Req:    req,
-		bodies: [][]byte{body},
-	}, err
-}
-
-func (ctx Context) unpack(in interface{}) error {
-	for _, body := range ctx.bodies {
-		if len(body) == 0 {
-			continue
-		}
-		if err := json.Unmarshal(body, in); err != nil {
-			return err
-		}
+func newRunCtx(
+	w http.ResponseWriter,
+	req *http.Request,
+	cons Constructor,
+) *runctx {
+	ctx := &runctx{
+		req:      req,
+		w:        w,
+		cons:     cons,
+		response: reflect.ValueOf(nil),
+		results: map[reflect.Type]reflect.Value{
+			reflect.TypeOf(w):   reflect.ValueOf(w),
+			reflect.TypeOf(req): reflect.ValueOf(req),
+		},
 	}
-	return nil
+	return ctx
+}
+
+func (ctx *runctx) provide(t reflect.Type, val reflect.Value) {
+	ctx.results[t] = val
+}
+
+func (ctx *runctx) construct(t reflect.Type) (reflect.Value, error) {
+	// TODO: Use constructor to build reflect.Value.
+	return reflect.New(t), nil
 }
