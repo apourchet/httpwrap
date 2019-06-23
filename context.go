@@ -6,49 +6,91 @@ import (
 )
 
 type runctx struct {
-	w    http.ResponseWriter
+	rw   http.ResponseWriter
 	req  *http.Request
 	cons Constructor
 
-	response reflect.Value
-	results  map[reflect.Type]reflect.Value
+	response    reflect.Value
+	results     map[reflect.Type]param
+	resultSlice []param
+}
+
+type param struct {
+	t reflect.Type
+	v reflect.Value
+	i interface{}
 }
 
 func newRunCtx(
-	w http.ResponseWriter,
+	rw http.ResponseWriter,
 	req *http.Request,
 	cons Constructor,
 ) *runctx {
 	ctx := &runctx{
-		req:      req,
-		w:        w,
-		cons:     cons,
-		response: reflect.Zero(reflect.TypeOf((*interface{})(nil)).Elem()),
-		results: map[reflect.Type]reflect.Value{
-			_httpResponseWriterType: reflect.ValueOf(w),
-			_httpRequestType:        reflect.ValueOf(req),
-		},
+		req:         req,
+		rw:          rw,
+		cons:        cons,
+		response:    reflect.Zero(reflect.TypeOf((*interface{})(nil)).Elem()),
+		results:     map[reflect.Type]param{},
+		resultSlice: []param{},
 	}
+	ctx.provide(req)
+	ctx.provide(rw)
 	return ctx
 }
 
-func (ctx *runctx) provide(t reflect.Type, val reflect.Value) {
-	ctx.results[t] = val
+func (ctx *runctx) provide(i interface{}) {
+	if i == nil {
+		return
+	}
+	p := param{
+		t: reflect.TypeOf(i),
+		v: reflect.ValueOf(i),
+		i: i,
+	}
+	ctx.results[p.t] = p
+	ctx.resultSlice = append(ctx.resultSlice, p)
 }
 
-func (ctx *runctx) get(t reflect.Type) (reflect.Value, bool) {
-	if t.String() == "http.ResponseWriter" {
-		return reflect.ValueOf(ctx.w), true
+func (ctx *runctx) get(t reflect.Type) (val reflect.Value, found bool) {
+	if t.Kind() != reflect.Interface {
+		param, found := ctx.results[t]
+		return param.v, found
 	}
-	val, found := ctx.results[t]
-	return val, found
+	for _, p := range ctx.resultSlice {
+		if p.t.Implements(t) {
+			return p.v, true
+		}
+	}
+	return val, false
 }
 
 func (ctx *runctx) construct(t reflect.Type) (reflect.Value, error) {
 	if t.Kind() == reflect.Interface {
 		return reflect.Zero(t), nil
 	}
-	obj := reflect.New(t).Elem()
-	err := ctx.cons(ctx.w, ctx.req, obj)
-	return obj, err
+	obj := reflect.New(t)
+	err := ctx.cons(ctx.rw, ctx.req, obj.Interface())
+	return obj.Elem(), err
+}
+
+func (ctx *runctx) generate(types []reflect.Type) ([]reflect.Value, error) {
+	values := make([]reflect.Value, len(types))
+	for i, t := range types {
+		if isEmptyInterface(t) {
+			values[i] = ctx.response
+			continue
+		} else if val, found := ctx.get(t); found {
+			values[i] = val
+			continue
+		}
+
+		val, err := ctx.construct(t)
+		if err != nil {
+			ctx.provide(err)
+			return nil, err
+		}
+		values[i] = val
+	}
+	return values, nil
 }

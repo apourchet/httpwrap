@@ -31,22 +31,9 @@ func newBefore(fn interface{}) (beforeFn, error) {
 }
 
 func (fn beforeFn) run(ctx *runctx) error {
-	inputs := make([]reflect.Value, len(fn.inTypes))
-	for i, inType := range fn.inTypes {
-		if isEmptyInterface(inType) {
-			inputs[i] = ctx.response
-			continue
-		} else if val, found := ctx.get(inType); found {
-			inputs[i] = val
-			continue
-		}
-
-		input, err := ctx.construct(inType)
-		if err != nil {
-			ctx.provide(reflect.TypeOf(err), reflect.ValueOf(err))
-			return err
-		}
-		inputs[i] = input
+	inputs, err := ctx.generate(fn.inTypes)
+	if err != nil {
+		return err
 	}
 
 	outs := fn.val.Call(inputs)
@@ -55,7 +42,7 @@ func (fn beforeFn) run(ctx *runctx) error {
 	}
 
 	for i := 0; i < len(outs); i++ {
-		ctx.provide(fn.outTypes[i], outs[i])
+		ctx.provide(outs[i].Interface())
 	}
 
 	if !isError(fn.outTypes[len(outs)-1]) {

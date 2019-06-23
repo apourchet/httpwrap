@@ -31,18 +31,9 @@ func newMain(fn interface{}) (mainFn, error) {
 }
 
 func (fn mainFn) run(ctx *runctx) interface{} {
-	inputs := make([]reflect.Value, len(fn.inTypes))
-	for i, inType := range fn.inTypes {
-		if val, found := ctx.get(inType); found {
-			inputs[i] = val
-			continue
-		}
-		input, err := ctx.construct(inType)
-		if err != nil {
-			ctx.provide(reflect.TypeOf(err), reflect.ValueOf(err))
-			return nil
-		}
-		inputs[i] = input
+	inputs, err := ctx.generate(fn.inTypes)
+	if err != nil {
+		return nil
 	}
 
 	outs := fn.val.Call(inputs)
@@ -51,7 +42,7 @@ func (fn mainFn) run(ctx *runctx) interface{} {
 	}
 
 	for i := 0; i < len(outs); i++ {
-		ctx.provide(fn.outTypes[i], outs[i])
+		ctx.provide(outs[i].Interface())
 	}
 
 	if len(outs) == 1 && fn.outTypes[0] == _errorType {

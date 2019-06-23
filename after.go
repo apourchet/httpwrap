@@ -31,25 +31,13 @@ func newAfter(fn interface{}) (afterFn, error) {
 }
 
 func (fn afterFn) run(ctx *runctx) {
-	inputs := make([]reflect.Value, len(fn.inTypes))
-	for i, inType := range fn.inTypes {
-		if isEmptyInterface(inType) {
-			inputs[i] = ctx.response
-			continue
-		} else if val, found := ctx.get(inType); found {
-			inputs[i] = val
-			continue
-		}
-
-		input, err := ctx.construct(inType)
-		if err != nil {
-			ctx.provide(reflect.TypeOf(err), reflect.ValueOf(err))
-		}
-		inputs[i] = input
+	inputs, err := ctx.generate(fn.inTypes)
+	if err != nil {
+		return
 	}
 
 	outs := fn.val.Call(inputs)
 	for i := 0; i < len(outs); i++ {
-		ctx.provide(fn.outTypes[i], outs[i])
+		ctx.provide(outs[i].Interface())
 	}
 }

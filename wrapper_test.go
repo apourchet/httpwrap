@@ -54,6 +54,8 @@ func TestWrapper(t *testing.T) {
 		handler := New().
 			WithConstruct(nopConstructor).
 			Before(func(req *http.Request) meta {
+				require.NotNil(t, req)
+				require.NotNil(t, req.URL)
 				return meta{req.URL.Path}
 			}).
 			Wrap(func(m meta) {
@@ -75,6 +77,7 @@ func TestWrapper(t *testing.T) {
 				return meta{req.URL.Path}, fmt.Errorf("failed before")
 			}).
 			Finally(func(rw http.ResponseWriter, m meta, res interface{}, err error) {
+				require.NotNil(t, rw)
 				require.Equal(t, "/test", m.path)
 				require.Nil(t, res)
 				require.Error(t, err)
@@ -97,9 +100,12 @@ func TestWrapper(t *testing.T) {
 		handler := New().
 			WithConstruct(nopConstructor).
 			Before(func(req *http.Request) (meta, error) {
+				require.NotNil(t, req)
+				require.NotNil(t, req.URL)
 				return meta{req.URL.Path}, nil
 			}).
 			Finally(func(rw http.ResponseWriter, m meta, res interface{}, err error) {
+				require.NotNil(t, rw)
 				require.Equal(t, "/test", m.path)
 				require.Nil(t, res)
 				require.Error(t, err)
@@ -112,26 +118,49 @@ func TestWrapper(t *testing.T) {
 		require.Equal(t, http.StatusCreated, rw.Result().StatusCode)
 	})
 
-	t.Run("with constructor", func(t *testing.T) {
+	t.Run("with failed constructor", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		rw := httptest.NewRecorder()
 
-		type meta struct{ metafield string }
-		type extra struct{ field1 string }
-		type mainArg struct{ field2 string }
+		type meta struct{}
+		handler := New().
+			WithConstruct(failedConstructor).
+			Before(func(m meta) {
+				require.FailNow(t, "should not get to before")
+			}).
+			Finally(func(rw http.ResponseWriter, err error) {
+				require.Error(t, err)
+				require.NotNil(t, rw)
+				rw.WriteHeader(http.StatusCreated)
+			}).
+			Wrap(func() {
+				require.FailNow(t, "should not get to before")
+			})
+		handler.ServeHTTP(rw, req)
+		require.Equal(t, http.StatusCreated, rw.Result().StatusCode)
+	})
+
+	t.Run("with constructor", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/test", strings.NewReader(`{"metafield": "metafield", "field2": "field2"}`))
+		rw := httptest.NewRecorder()
+
+		type meta struct{ Metafield string }
+		type extra struct{ Field1 string }
+		type mainArg struct{ Field2 string }
 		handler := New().
 			WithConstruct(jsonBodyConstructor).
 			Before(func(m meta) extra {
-				require.Equal(t, "metafield", m.metafield)
+				require.Equal(t, "metafield", m.Metafield)
 				return extra{"field1"}
 			}).
 			Finally(func(rw http.ResponseWriter, err error) {
 				require.NoError(t, err)
+				require.NotNil(t, rw)
 				rw.WriteHeader(http.StatusCreated)
 			}).
 			Wrap(func(e extra, m mainArg) error {
-				require.Equal(t, "field1", e.field1)
-				require.Equal(t, "field2", m.field2)
+				require.Equal(t, "field1", e.Field1)
+				require.Equal(t, "field2", m.Field2)
 				return nil
 			})
 		handler.ServeHTTP(rw, req)

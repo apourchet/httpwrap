@@ -16,6 +16,7 @@ func TestAfter(t *testing.T) {
 		ctx := newRunCtx(rw, req, nopConstructor)
 
 		after, err := newAfter(func(w http.ResponseWriter, res interface{}) {
+			require.NotNil(t, w)
 			w.WriteHeader(http.StatusOK)
 		})
 		require.NoError(t, err)
@@ -31,6 +32,7 @@ func TestAfter(t *testing.T) {
 		ctx.response = reflect.ValueOf(1)
 
 		after, err := newAfter(func(w http.ResponseWriter, res interface{}) {
+			require.NotNil(t, w)
 			require.Equal(t, res, 1)
 		})
 		require.NoError(t, err)
