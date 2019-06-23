@@ -5,8 +5,6 @@ import (
 	"reflect"
 )
 
-var _errorType = reflect.TypeOf(error(nil))
-
 type mainFn struct {
 	val      reflect.Value
 	inTypes  []reflect.Type
@@ -24,8 +22,10 @@ func newMain(fn interface{}) (mainFn, error) {
 		outTypes = append(outTypes, fnType.Out(i))
 	}
 
-	// TODO: Assert that input types is never interface.
-	// TODO: Assert that first output type isnt error if len(outs) >= 2.
+	if err := validateMain(inTypes, outTypes); err != nil {
+		return mainFn{}, err
+	}
+
 	return mainFn{
 		val:      val,
 		inTypes:  inTypes,

@@ -1,11 +1,6 @@
 package httpwrap
 
-import (
-	"fmt"
-	"reflect"
-)
-
-var _emptyInterfaceType = reflect.TypeOf(interface{}(nil))
+import "reflect"
 
 type beforeFn struct {
 	val      reflect.Value
@@ -24,9 +19,10 @@ func newBefore(fn interface{}) (beforeFn, error) {
 		outTypes = append(outTypes, fnType.Out(i))
 	}
 
-	// TODO: If outs[len(outs)-1] == 'error'
-	// TODO: number of intypes that are emptyInterface == 0
-	// TODO: number of intypes that are error <= 1
+	if err := validateBefore(inTypes, outTypes); err != nil {
+		return beforeFn{}, err
+	}
+
 	return beforeFn{
 		val:      val,
 		inTypes:  inTypes,
@@ -35,10 +31,9 @@ func newBefore(fn interface{}) (beforeFn, error) {
 }
 
 func (fn beforeFn) run(ctx *runctx) error {
-	fmt.Println("before", fn.inTypes)
 	inputs := make([]reflect.Value, len(fn.inTypes))
 	for i, inType := range fn.inTypes {
-		if inType == _emptyInterfaceType {
+		if isEmptyInterface(inType) {
 			inputs[i] = ctx.response
 			continue
 		} else if val, found := ctx.get(inType); found {
@@ -46,7 +41,6 @@ func (fn beforeFn) run(ctx *runctx) error {
 			continue
 		}
 
-		fmt.Println("before inner", inType, _httpResponseWriterType)
 		input, err := ctx.construct(inType)
 		if err != nil {
 			ctx.provide(_errorType, reflect.ValueOf(err))
@@ -55,7 +49,6 @@ func (fn beforeFn) run(ctx *runctx) error {
 		inputs[i] = input
 	}
 
-	fmt.Println("before", inputs)
 	outs := fn.val.Call(inputs)
 	if len(outs) == 0 {
 		return nil

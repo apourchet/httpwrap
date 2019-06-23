@@ -22,8 +22,10 @@ func newAfter(fn interface{}) (afterFn, error) {
 		outTypes = append(outTypes, fnType.Out(i))
 	}
 
-	// TODO: number of intypes that are emptyInterface <= 1
-	// TODO: number of intypes that are error <= 1
+	if err := validateAfter(inTypes, outTypes); err != nil {
+		return afterFn{}, err
+	}
+
 	return afterFn{
 		val:      val,
 		inTypes:  inTypes,
@@ -35,7 +37,7 @@ func (fn afterFn) run(ctx *runctx) {
 	fmt.Println("after", fn.inTypes)
 	inputs := make([]reflect.Value, len(fn.inTypes))
 	for i, inType := range fn.inTypes {
-		if inType == _emptyInterfaceType {
+		if inType.String() == "interface {}" {
 			inputs[i] = ctx.response
 			continue
 		} else if val, found := ctx.get(inType); found {
@@ -43,7 +45,6 @@ func (fn afterFn) run(ctx *runctx) {
 			continue
 		}
 
-		fmt.Println("WILL CONSTRUCT", inType, _httpResponseWriterType)
 		input, err := ctx.construct(inType)
 		if err != nil {
 			ctx.provide(_errorType, reflect.ValueOf(err))

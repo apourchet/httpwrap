@@ -1,13 +1,9 @@
 package httpwrap
 
 import (
-	"fmt"
 	"net/http"
 	"reflect"
 )
-
-var _httpResponseWriterType = reflect.TypeOf(http.ResponseWriter(nil))
-var _httpRequestType = reflect.TypeOf(&http.Request{})
 
 type runctx struct {
 	w    http.ResponseWriter
@@ -27,7 +23,7 @@ func newRunCtx(
 		req:      req,
 		w:        w,
 		cons:     cons,
-		response: reflect.ValueOf(nil),
+		response: reflect.Zero(reflect.TypeOf((*interface{})(nil)).Elem()),
 		results: map[reflect.Type]reflect.Value{
 			_httpResponseWriterType: reflect.ValueOf(w),
 			_httpRequestType:        reflect.ValueOf(req),
@@ -49,7 +45,6 @@ func (ctx *runctx) get(t reflect.Type) (reflect.Value, bool) {
 }
 
 func (ctx *runctx) construct(t reflect.Type) (reflect.Value, error) {
-	fmt.Println("constructing", t)
 	if t.Kind() == reflect.Interface {
 		return reflect.Zero(t), nil
 	}
