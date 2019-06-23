@@ -37,11 +37,13 @@ func TestWrapper(t *testing.T) {
 				s := fmt.Sprintf("%v", res)
 				require.True(t, strings.Contains(s, "response"))
 				require.Error(t, err)
+				rw.WriteHeader(http.StatusCreated)
 			}).
 			Wrap(func() (resp, error) {
 				return resp{"response"}, fmt.Errorf("error")
 			})
 		handler.ServeHTTP(rw, req)
+		require.Equal(t, http.StatusCreated, rw.Result().StatusCode)
 	})
 
 	t.Run("main with before", func(t *testing.T) {
@@ -56,8 +58,10 @@ func TestWrapper(t *testing.T) {
 			}).
 			Wrap(func(m meta) {
 				require.Equal(t, "/test", m.path)
+				rw.WriteHeader(http.StatusCreated)
 			})
 		handler.ServeHTTP(rw, req)
+		require.Equal(t, http.StatusCreated, rw.Result().StatusCode)
 	})
 
 	t.Run("before failing", func(t *testing.T) {
@@ -74,12 +78,14 @@ func TestWrapper(t *testing.T) {
 				require.Equal(t, "/test", m.path)
 				require.Nil(t, res)
 				require.Error(t, err)
+				rw.WriteHeader(http.StatusCreated)
 			}).
 			Wrap(func(m meta) error {
 				require.FailNow(t, "should not call main handler")
 				return nil
 			})
 		handler.ServeHTTP(rw, req)
+		require.Equal(t, http.StatusCreated, rw.Result().StatusCode)
 	})
 
 	t.Run("main failing", func(t *testing.T) {
@@ -97,10 +103,38 @@ func TestWrapper(t *testing.T) {
 				require.Equal(t, "/test", m.path)
 				require.Nil(t, res)
 				require.Error(t, err)
+				rw.WriteHeader(http.StatusCreated)
 			}).
 			Wrap(func(m meta) (*resp, error) {
 				return nil, fmt.Errorf("main failed")
 			})
 		handler.ServeHTTP(rw, req)
+		require.Equal(t, http.StatusCreated, rw.Result().StatusCode)
+	})
+
+	t.Run("with constructor", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/test", nil)
+		rw := httptest.NewRecorder()
+
+		type meta struct{ metafield string }
+		type extra struct{ field1 string }
+		type mainArg struct{ field2 string }
+		handler := New().
+			WithConstruct(jsonBodyConstructor).
+			Before(func(m meta) extra {
+				require.Equal(t, "metafield", m.metafield)
+				return extra{"field1"}
+			}).
+			Finally(func(rw http.ResponseWriter, err error) {
+				require.NoError(t, err)
+				rw.WriteHeader(http.StatusCreated)
+			}).
+			Wrap(func(e extra, m mainArg) error {
+				require.Equal(t, "field1", e.field1)
+				require.Equal(t, "field2", m.field2)
+				return nil
+			})
+		handler.ServeHTTP(rw, req)
+		require.Equal(t, http.StatusCreated, rw.Result().StatusCode)
 	})
 }

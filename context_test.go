@@ -1,6 +1,7 @@
 package httpwrap
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -10,6 +11,10 @@ import (
 )
 
 func nopConstructor(http.ResponseWriter, *http.Request, interface{}) error { return nil }
+
+func jsonBodyConstructor(_ http.ResponseWriter, req *http.Request, obj interface{}) error {
+	return json.NewDecoder(req.Body).Decode(obj)
+}
 
 func TestContext(t *testing.T) {
 	req := httptest.NewRequest("GET", "/test", nil)

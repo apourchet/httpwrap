@@ -39,7 +39,7 @@ func (fn mainFn) run(ctx *runctx) interface{} {
 		}
 		input, err := ctx.construct(inType)
 		if err != nil {
-			ctx.provide(_errorType, reflect.ValueOf(err))
+			ctx.provide(reflect.TypeOf(err), reflect.ValueOf(err))
 			return nil
 		}
 		inputs[i] = input
