@@ -1,9 +1,6 @@
 package httpwrap
 
-import (
-	"fmt"
-	"reflect"
-)
+import "reflect"
 
 type afterFn struct {
 	val      reflect.Value
@@ -34,10 +31,9 @@ func newAfter(fn interface{}) (afterFn, error) {
 }
 
 func (fn afterFn) run(ctx *runctx) {
-	fmt.Println("after", fn.inTypes)
 	inputs := make([]reflect.Value, len(fn.inTypes))
 	for i, inType := range fn.inTypes {
-		if inType.String() == "interface {}" {
+		if isEmptyInterface(inType) {
 			inputs[i] = ctx.response
 			continue
 		} else if val, found := ctx.get(inType); found {
@@ -52,7 +48,6 @@ func (fn afterFn) run(ctx *runctx) {
 		inputs[i] = input
 	}
 
-	fmt.Println("after", inputs)
 	outs := fn.val.Call(inputs)
 	for i := 0; i < len(outs); i++ {
 		ctx.provide(fn.outTypes[i], outs[i])

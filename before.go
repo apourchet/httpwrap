@@ -58,6 +58,10 @@ func (fn beforeFn) run(ctx *runctx) error {
 		ctx.provide(fn.outTypes[i], outs[i])
 	}
 
+	if !isError(fn.outTypes[len(outs)-1]) {
+		return nil
+	}
+
 	lastVal := outs[len(outs)-1]
 	if lastVal.IsNil() {
 		return nil

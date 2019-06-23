@@ -7,10 +7,14 @@ import (
 
 var _httpResponseWriterType = reflect.TypeOf(http.ResponseWriter(nil))
 var _httpRequestType = reflect.TypeOf(&http.Request{})
-var _errorType = reflect.TypeOf(error(nil))
+var _errorType = reflect.TypeOf((*error)(nil))
 
 func isEmptyInterface(t reflect.Type) bool {
 	return t.String() == "interface {}"
+}
+
+func isError(t reflect.Type) bool {
+	return t.String() == "error"
 }
 
 func validateBefore(in, out []reflect.Type) error {

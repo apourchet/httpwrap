@@ -16,10 +16,10 @@ func TestBefore(t *testing.T) {
 		ctx := newRunCtx(rw, req, nopConstructor)
 
 		before, err := newBefore(func(req *http.Request, rw http.ResponseWriter, in struct{}) error {
+			require.Equal(t, "GET", req.Method)
 			return nil
 		})
 		require.NoError(t, err)
-
 		err = before.run(ctx)
 		require.NoError(t, err)
 	})
