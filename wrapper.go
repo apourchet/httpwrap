@@ -8,7 +8,7 @@ import (
 type Wrapper struct {
 	befores []beforeFn
 	main    mainFn
-	afters  []afterFn
+	after   afterFn
 
 	construct Constructor
 }
@@ -49,17 +49,12 @@ func (w Wrapper) Wrap(fn interface{}) *Wrapper {
 	return &w
 }
 
-func (w Wrapper) After(fns ...interface{}) *Wrapper {
-	afters := make([]afterFn, len(w.afters)+len(fns))
-	copy(afters, w.afters)
-	for i, after := range fns {
-		helper, err := newAfter(after)
-		if err != nil {
-			panic(err)
-		}
-		afters[i+len(w.afters)] = helper
+func (w Wrapper) Finally(fn interface{}) *Wrapper {
+	after, err := newAfter(fn)
+	if err != nil {
+		panic(err)
 	}
-	w.afters = afters
+	w.after = after
 	return &w
 }
 
@@ -69,7 +64,7 @@ func (w Wrapper) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if err == nil {
 		ctx.response = reflect.ValueOf(w.main.run(ctx))
 	}
-	w.serveAfters(ctx)
+	w.after.run(ctx)
 }
 
 func (w Wrapper) serveBefores(ctx *runctx) error {
@@ -79,10 +74,4 @@ func (w Wrapper) serveBefores(ctx *runctx) error {
 		}
 	}
 	return nil
-}
-
-func (w Wrapper) serveAfters(ctx *runctx) {
-	for _, after := range w.afters {
-		after.run(ctx)
-	}
 }

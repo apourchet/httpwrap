@@ -1,6 +1,9 @@
 package httpwrap
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
 var _errorType = reflect.TypeOf(error(nil))
 
@@ -31,13 +34,19 @@ func newMain(fn interface{}) (mainFn, error) {
 }
 
 func (fn mainFn) run(ctx *runctx) interface{} {
+	fmt.Println("main", fn.inTypes)
 	inputs := make([]reflect.Value, len(fn.inTypes))
 	for i, inType := range fn.inTypes {
-		if val, found := ctx.results[inType]; found {
+		if val, found := ctx.get(inType); found {
 			inputs[i] = val
 			continue
 		}
-		inputs[i] = ctx.construct(inType)
+		input, err := ctx.construct(inType)
+		if err != nil {
+			ctx.provide(_errorType, reflect.ValueOf(err))
+			return nil
+		}
+		inputs[i] = input
 	}
 
 	outs := fn.val.Call(inputs)
@@ -46,7 +55,7 @@ func (fn mainFn) run(ctx *runctx) interface{} {
 	}
 
 	for i := 0; i < len(outs); i++ {
-		ctx.Provide(fn.outTypes[i], outs[i])
+		ctx.provide(fn.outTypes[i], outs[i])
 	}
 
 	if len(outs) == 1 && fn.outTypes[0] == _errorType {

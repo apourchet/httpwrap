@@ -25,6 +25,7 @@ type Description struct {
 }
 
 func (h hand) finish(w http.ResponseWriter, res interface{}, err error) {
+	fmt.Println("finish", res, err)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		if err := json.NewEncoder(w).Encode(err); err != nil {
@@ -38,7 +39,8 @@ func (h hand) finish(w http.ResponseWriter, res interface{}, err error) {
 	}
 }
 
-func (h hand) describe(req AuthReq) (*Description, error) {
+func (h hand) describe(req *AuthReq) (*Description, error) {
+	fmt.Println("describe", req)
 	if req.Secret == "staff" {
 		return &Description{
 			Subject: "antoine",
@@ -54,6 +56,7 @@ func (h hand) describe(req AuthReq) (*Description, error) {
 }
 
 func (h hand) ensureStaff(desc *Description) error {
+	fmt.Println("ensurestaff", desc)
 	if len(desc.Roles) != 2 || desc.Roles[1] != "staff" {
 		return fmt.Errorf("forbidden")
 	}
@@ -69,10 +72,11 @@ type H1Res struct {
 }
 
 func (h hand) h1(desc Description, req H1Req) (*H1Res, error) {
+	fmt.Println("h1", desc, req)
 	if desc.Subject == "default" {
 		return nil, fmt.Errorf("must be logged in")
 	}
-	fmt.Println(req.Stuff)
+	fmt.Println("h1 => ", req.Stuff)
 	return &H1Res{123}, nil
 }
 
@@ -90,11 +94,11 @@ func main() {
 	r := mux.NewRouter()
 	r.Handle("/h1", wrapper.
 		Wrap(handler.h1).
-		After(hand.finish))
+		Finally(handler.finish))
 	r.Handle("/h2", wrapper.
 		Before(handler.ensureStaff).
 		Wrap(handler.h1).
-		After(hand.finish))
+		Finally(handler.finish))
 
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":8081", r))
