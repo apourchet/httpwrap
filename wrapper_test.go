@@ -167,6 +167,31 @@ func TestWrapper(t *testing.T) {
 		require.Equal(t, http.StatusCreated, rw.Result().StatusCode)
 	})
 
+	t.Run("with primitive types", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/test", strings.NewReader(`"this is JSON"`))
+		rw := httptest.NewRecorder()
+
+		type body string
+		type extra struct{ Field1 string }
+		handler := New().
+			WithConstruct(jsonBodyConstructor).
+			Before(func(b body) extra {
+				require.Equal(t, "this is JSON", string(b))
+				return extra{"field1"}
+			}).
+			Finally(func(rw http.ResponseWriter, err error) {
+				require.NotNil(t, rw)
+				require.NoError(t, err)
+				rw.WriteHeader(http.StatusCreated)
+			}).
+			Wrap(func(e extra) error {
+				require.Equal(t, "field1", e.Field1)
+				return nil
+			})
+		handler.ServeHTTP(rw, req)
+		require.Equal(t, http.StatusCreated, rw.Result().StatusCode)
+	})
+
 	t.Run("before returns special error", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		rw := httptest.NewRecorder()

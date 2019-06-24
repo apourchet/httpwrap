@@ -37,15 +37,13 @@ func (fn mainFn) run(ctx *runctx) interface{} {
 	}
 
 	outs := fn.val.Call(inputs)
-	if len(outs) == 0 {
-		return nil
-	}
-
 	for i := 0; i < len(outs); i++ {
 		ctx.provide(outs[i].Interface())
 	}
 
-	if len(outs) == 1 && fn.outTypes[0] == _errorType {
+	if len(outs) == 0 {
+		return nil
+	} else if len(outs) == 1 && isError(fn.outTypes[0]) {
 		return nil
 	}
 	return outs[0].Interface()

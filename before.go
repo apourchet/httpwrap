@@ -37,15 +37,13 @@ func (fn beforeFn) run(ctx *runctx) error {
 	}
 
 	outs := fn.val.Call(inputs)
-	if len(outs) == 0 {
-		return nil
-	}
-
 	for i := 0; i < len(outs); i++ {
 		ctx.provide(outs[i].Interface())
 	}
 
-	if !isError(fn.outTypes[len(outs)-1]) {
+	if len(outs) == 0 {
+		return nil
+	} else if !isError(fn.outTypes[len(outs)-1]) {
 		return nil
 	}
 

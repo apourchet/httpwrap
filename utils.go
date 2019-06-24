@@ -1,12 +1,10 @@
 package httpwrap
 
 import (
-	"net/http"
+	"fmt"
 	"reflect"
 )
 
-var _httpResponseWriterType = reflect.TypeOf(http.ResponseWriter(nil))
-var _httpRequestType = reflect.TypeOf(&http.Request{})
 var _errorType = reflect.TypeOf((*error)(nil)).Elem()
 
 func isEmptyInterface(t reflect.Type) bool {
@@ -30,20 +28,45 @@ func typesOf(fn interface{}) ([]reflect.Type, []reflect.Type) {
 	return inTypes, outTypes
 }
 
-func validateBefore(in, out []reflect.Type) error {
-	// TODO: number of intypes that are emptyInterface == 0
-	// TODO: number of intypes that are error <= 1
+func validateBefore(in, _ []reflect.Type) error {
+	for i, t := range in {
+		if isEmptyInterface(t) {
+			return fmt.Errorf("before input #%d must not be empty interface", i)
+		}
+	}
+	if err := areTypesUnique(in); err != nil {
+		return fmt.Errorf("before input types must be unique: %v", err)
+	}
 	return nil
 }
 
-func validateMain(in, out []reflect.Type) error {
-	// TODO: Assert that input types is never interface.
-	// TODO: Assert that first output type isnt error if len(outs) >= 2.
+func validateMain(in, _ []reflect.Type) error {
+	for i, t := range in {
+		if isEmptyInterface(t) {
+			return fmt.Errorf("main input #%d must not be empty interface", i)
+		}
+	}
+	if err := areTypesUnique(in); err != nil {
+		return fmt.Errorf("main input types must be unique: %v", err)
+	}
+	// TODO: Assert check that main returns a non-error output?
 	return nil
 }
 
-func validateAfter(in, out []reflect.Type) error {
-	// TODO: number of intypes that are emptyInterface <= 1
-	// TODO: number of intypes that are error <= 1
+func validateAfter(in, _ []reflect.Type) error {
+	if err := areTypesUnique(in); err != nil {
+		return fmt.Errorf("after input types must be unique: %v", err)
+	}
+	return nil
+}
+
+func areTypesUnique(ts []reflect.Type) error {
+	m := map[reflect.Type]int{}
+	for i, t := range ts {
+		if j, found := m[t]; found {
+			return fmt.Errorf("types %d and %d are equal", j, i)
+		}
+		m[t] = i
+	}
 	return nil
 }

@@ -13,13 +13,20 @@ func TestMain(t *testing.T) {
 		rw := httptest.NewRecorder()
 		ctx := newRunCtx(rw, req, nopConstructor)
 
-		main, err := newMain(func(in interface{}) error {
+		main, err := newMain(func(in error) error {
 			require.Nil(t, in)
-			return nil
+			return in
 		})
 		require.NoError(t, err)
 		res := main.run(ctx)
 		require.Nil(t, res)
+	})
+
+	t.Run("empty interface input", func(t *testing.T) {
+		_, err := newMain(func(in interface{}) error {
+			return nil
+		})
+		require.Error(t, err)
 	})
 
 	t.Run("with result", func(t *testing.T) {
@@ -28,8 +35,7 @@ func TestMain(t *testing.T) {
 		ctx := newRunCtx(rw, req, nopConstructor)
 
 		type resp struct{ i int }
-
-		main, err := newMain(func(in interface{}) (resp, error) {
+		main, err := newMain(func(in error) (resp, error) {
 			require.Nil(t, in)
 			return resp{1}, nil
 		})
