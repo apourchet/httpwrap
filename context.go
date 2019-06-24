@@ -71,7 +71,8 @@ func (ctx *runctx) get(t reflect.Type) (val reflect.Value, found bool) {
 		return param.v, found
 	}
 
-	for _, p := range ctx.resultSlice {
+	for i := len(ctx.resultSlice) - 1; i >= 0; i-- {
+		p := ctx.resultSlice[i]
 		if p.t.Implements(t) {
 			return p.v, true
 		}

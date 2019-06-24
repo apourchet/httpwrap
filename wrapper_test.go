@@ -178,6 +178,7 @@ func TestWrapper(t *testing.T) {
 			}).
 			Finally(func(rw http.ResponseWriter, res interface{}, err error) {
 				require.NotNil(t, rw)
+				require.Nil(t, res)
 				require.Error(t, err)
 				rw.WriteHeader(http.StatusCreated)
 			}).
