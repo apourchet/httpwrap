@@ -48,15 +48,29 @@ func (ctx *runctx) provide(i interface{}) {
 		v: reflect.ValueOf(i),
 		i: i,
 	}
+	switch p.t.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+		if p.v.IsNil() {
+			return
+		}
+	}
 	ctx.results[p.t] = p
 	ctx.resultSlice = append(ctx.resultSlice, p)
 }
 
 func (ctx *runctx) get(t reflect.Type) (val reflect.Value, found bool) {
+	if isEmptyInterface(t) {
+		if ctx.response.IsValid() {
+			return ctx.response, true
+		}
+		return ctx.response, false
+	}
+
 	if t.Kind() != reflect.Interface {
 		param, found := ctx.results[t]
 		return param.v, found
 	}
+
 	for _, p := range ctx.resultSlice {
 		if p.t.Implements(t) {
 			return p.v, true
@@ -77,10 +91,7 @@ func (ctx *runctx) construct(t reflect.Type) (reflect.Value, error) {
 func (ctx *runctx) generate(types []reflect.Type) ([]reflect.Value, error) {
 	values := make([]reflect.Value, len(types))
 	for i, t := range types {
-		if isEmptyInterface(t) {
-			values[i] = ctx.response
-			continue
-		} else if val, found := ctx.get(t); found {
+		if val, found := ctx.get(t); found {
 			values[i] = val
 			continue
 		}

@@ -28,6 +28,12 @@ func failedConstructor(http.ResponseWriter, *http.Request, interface{}) error {
 	return fmt.Errorf("error")
 }
 
+type myerr struct{}
+
+func (e myerr) Error() string { return "error" }
+
+var _ error = myerr{}
+
 func TestContext(t *testing.T) {
 	t.Run("default http types", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
@@ -61,5 +67,39 @@ func TestContext(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, vals, 1)
 		require.False(t, vals[0].IsNil())
+	})
+
+	t.Run("provide special error", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/test", nil)
+		rw := httptest.NewRecorder()
+		ctx := newRunCtx(rw, req, nopConstructor)
+
+		err := myerr{}
+		ctx.provide(err)
+
+		fn := func(err error) {}
+		types, _ := typesOf(fn)
+
+		vals, err1 := ctx.generate(types)
+		require.NoError(t, err1)
+		require.Len(t, vals, 1)
+		require.NotNil(t, vals[0].Interface())
+	})
+
+	t.Run("provide nil value that satisfies interface", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/test", nil)
+		rw := httptest.NewRecorder()
+		ctx := newRunCtx(rw, req, nopConstructor)
+
+		var err *myerr
+		ctx.provide(err)
+
+		fn := func(err error) {}
+		types, _ := typesOf(fn)
+
+		vals, err1 := ctx.generate(types)
+		require.NoError(t, err1)
+		require.Len(t, vals, 1)
+		require.Nil(t, vals[0].Interface())
 	})
 }

@@ -166,4 +166,37 @@ func TestWrapper(t *testing.T) {
 		handler.ServeHTTP(rw, req)
 		require.Equal(t, http.StatusCreated, rw.Result().StatusCode)
 	})
+
+	t.Run("before returns special error", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/test", nil)
+		rw := httptest.NewRecorder()
+
+		handler := New().
+			WithConstruct(nopConstructor).
+			Before(func() *myerr {
+				return &myerr{}
+			}).
+			Finally(func(rw http.ResponseWriter, res interface{}, err error) {
+				require.NotNil(t, rw)
+				require.Error(t, err)
+				rw.WriteHeader(http.StatusCreated)
+			}).
+			Wrap(func() {})
+		handler.ServeHTTP(rw, req)
+		require.Equal(t, http.StatusCreated, rw.Result().StatusCode)
+
+		handler = New().
+			WithConstruct(nopConstructor).
+			Before(func() *myerr {
+				return nil
+			}).
+			Finally(func(rw http.ResponseWriter, res interface{}, err error) {
+				require.NotNil(t, rw)
+				require.NoError(t, err)
+				rw.WriteHeader(http.StatusCreated)
+			}).
+			Wrap(func() {})
+		handler.ServeHTTP(rw, req)
+		require.Equal(t, http.StatusCreated, rw.Result().StatusCode)
+	})
 }
