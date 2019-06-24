@@ -10,7 +10,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// To test.
 type hand struct {
 	i int
 }
