@@ -198,6 +198,7 @@ func TestWrapper(t *testing.T) {
 
 		handler := New().
 			WithConstruct(nopConstructor).
+			Wrap(func() {}).
 			Before(func() *myerr {
 				return &myerr{}
 			}).
@@ -206,8 +207,7 @@ func TestWrapper(t *testing.T) {
 				require.Nil(t, res)
 				require.Error(t, err)
 				rw.WriteHeader(http.StatusCreated)
-			}).
-			Wrap(func() {})
+			})
 		handler.ServeHTTP(rw, req)
 		require.Equal(t, http.StatusCreated, rw.Result().StatusCode)
 
@@ -216,12 +216,12 @@ func TestWrapper(t *testing.T) {
 			Before(func() *myerr {
 				return nil
 			}).
+			Wrap(func() {}).
 			Finally(func(rw http.ResponseWriter, res interface{}, err error) {
 				require.NotNil(t, rw)
 				require.NoError(t, err)
 				rw.WriteHeader(http.StatusCreated)
-			}).
-			Wrap(func() {})
+			})
 		handler.ServeHTTP(rw, req)
 		require.Equal(t, http.StatusCreated, rw.Result().StatusCode)
 	})
