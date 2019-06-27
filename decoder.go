@@ -64,19 +64,29 @@ func (d *Decoder) Decode(req *http.Request, obj interface{}) error {
 		return err
 	}
 
-	st, valid := internals.DerefStruct(obj)
+	v, valid := internal.DerefValue(obj)
+	if !valid || v.Kind() != reflect.Struct {
+		return nil
+	}
+
+	t, valid := internal.DerefType(obj)
 	if !valid {
 		return nil
 	}
 
-	for i := 0; i < st.NumField(); i++ {
-		field := st.Field(i)
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
 		directive, found := field.Tag.Lookup("http")
 		if !found || directive == "" {
 			continue
 		}
 
-		if err := d.decodeDirective(req, field, directive); err != nil {
+		f := v.Field(i)
+		if !f.IsValid() {
+			return fmt.Errorf("field %s is not valid to decode into from request", field.Name)
+		}
+
+		if err := d.decodeDirective(req, f, directive); err != nil {
 			return err
 		}
 	}
@@ -84,6 +94,7 @@ func (d *Decoder) Decode(req *http.Request, obj interface{}) error {
 }
 
 func (d *Decoder) decodeDirective(req *http.Request, field reflect.Value, directive string) error {
+
 	split := strings.SplitN(directive, "=", 2)
 	if len(split) != 2 {
 		return fmt.Errorf("malformed http struct tag: %v", directive)
@@ -115,6 +126,15 @@ func (d *Decoder) decodeValue(req *http.Request, field reflect.Value, tagkey, ta
 	} else if err != nil {
 		return err
 	}
+	if !field.CanSet() {
+		return nil
+	}
 
-	return internals.SetField(field, strvals...)
+	val, err := internal.GenVal(field.Type(), strvals...)
+	if err != nil {
+		return err
+	}
+
+	field.Set(val)
+	return nil
 }
