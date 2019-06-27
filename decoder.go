@@ -94,7 +94,6 @@ func (d *Decoder) Decode(req *http.Request, obj interface{}) error {
 }
 
 func (d *Decoder) decodeDirective(req *http.Request, field reflect.Value, directive string) error {
-
 	split := strings.SplitN(directive, "=", 2)
 	if len(split) != 2 {
 		return fmt.Errorf("malformed http struct tag: %v", directive)
@@ -121,6 +120,10 @@ func (d *Decoder) decodeValue(req *http.Request, field reflect.Value, tagkey, ta
 		return fmt.Errorf("unrecognized http tag %v", tagkey)
 	}
 
+	if len(strvals) == 0 {
+		return nil
+	}
+
 	if err == internal.ErrValueNotFound {
 		return nil
 	} else if err != nil {
@@ -130,7 +133,7 @@ func (d *Decoder) decodeValue(req *http.Request, field reflect.Value, tagkey, ta
 		return nil
 	}
 
-	val, err := internal.GenVal(field.Type(), strvals...)
+	val, err := internal.GenVal(field.Type(), strvals[0], strvals[1:]...)
 	if err != nil {
 		return err
 	}
