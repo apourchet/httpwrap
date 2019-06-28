@@ -51,9 +51,10 @@ func NewDecoder() *Decoder {
 
 // Decode will, given a struct definition:
 // type Request struct {
-//		Token string `mercury:"header=Authorization"`
-//		Limit int `mercury:"query=limit"`
-//		Resource string `mercury:"param=resource"`
+//		AuthString string   `http:"header=Authorization"`
+//		Limit int           `http:"query=limit"`
+//		Resource string     `http:"segment=resource"`
+//		UserCookie float64  `http:"cookie=user_cookie"`
 // }
 // The Authorization header will be parsed into the field Token of the
 // request struct
@@ -84,6 +85,8 @@ func (d *Decoder) Decode(req *http.Request, obj interface{}) error {
 		f := v.Field(i)
 		if !f.IsValid() {
 			return fmt.Errorf("field %s is not valid to decode into from request", field.Name)
+		} else if !f.CanSet() {
+			continue
 		}
 
 		if err := d.decodeDirective(req, f, directive); err != nil {
@@ -128,9 +131,6 @@ func (d *Decoder) decodeValue(req *http.Request, field reflect.Value, tagkey, ta
 		return nil
 	} else if err != nil {
 		return err
-	}
-	if !field.CanSet() {
-		return nil
 	}
 
 	val, err := internal.GenVal(field.Type(), strvals[0], strvals[1:]...)

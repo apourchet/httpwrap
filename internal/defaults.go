@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/gorilla/mux"
 )
 
 var (
@@ -39,9 +41,14 @@ func GetHeader(req *http.Request, key string) (string, error) {
 // information resurface.
 func GetSegment(req *http.Request, key string) (string, error) {
 	// We need some insight into the parsing of the request path if we
-	// want access to this information. Therefore this must be
-	// user-supplied.
-	return "", ErrValueNotFound
+	// want access to this information. Therefore we expect this to be
+	// user-supplied. As a default, we use gorilla's mux package to
+	// fetch the right variables.
+	pathval := mux.Vars(req)[key]
+	if pathval == "" {
+		return "", ErrValueNotFound
+	}
+	return pathval, nil
 }
 
 // GetQueries returns the list of values that this query parameter
