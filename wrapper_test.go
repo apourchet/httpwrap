@@ -15,9 +15,24 @@ func TestWrapper(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		rw := httptest.NewRecorder()
 
+		type meta struct{}
 		handler := New().
 			WithConstruct(nopConstructor).
 			Wrap(func(rw http.ResponseWriter, req *http.Request) error {
+				require.NotNil(t, rw)
+				require.Equal(t, "GET", req.Method)
+				return nil
+			})
+		handler.ServeHTTP(rw, req)
+		require.Equal(t, http.StatusOK, rw.Result().StatusCode)
+
+		rw = httptest.NewRecorder()
+		handler = New().
+			WithConstruct(nopConstructor).
+			Wrap(func(m *meta, m1 map[int]int, m2 []string) error {
+				require.NotNil(t, m)
+				require.NotNil(t, m1)
+				require.NotNil(t, m2)
 				require.NotNil(t, rw)
 				require.Equal(t, "GET", req.Method)
 				return nil

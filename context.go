@@ -84,7 +84,18 @@ func (ctx *runctx) construct(t reflect.Type) (reflect.Value, error) {
 	if t.Kind() == reflect.Interface {
 		return reflect.Zero(t), nil
 	}
+
+	// Make sure that we create a non-nil value if possible.
 	obj := reflect.New(t)
+	switch t.Kind() {
+	case reflect.Ptr:
+		obj.Elem().Set(reflect.New(t.Elem()))
+	case reflect.Map:
+		obj.Elem().Set(reflect.MakeMap(t))
+	case reflect.Slice:
+		obj.Elem().Set(reflect.MakeSlice(t, 0, 1))
+	}
+
 	err := ctx.cons(ctx.rw, ctx.req, obj.Interface())
 	return obj.Elem(), err
 }
