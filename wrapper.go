@@ -13,14 +13,10 @@ type Wrapper struct {
 	construct Constructor
 }
 
-// Constructor is the function signature for unmarshalling an http request into
-// an object.
-type Constructor func(http.ResponseWriter, *http.Request, interface{}) error
-
 // New creates a new Wrapper object.
 func New() Wrapper {
 	return Wrapper{
-		construct: func(http.ResponseWriter, *http.Request, interface{}) error { return nil },
+		construct: EmptyConstructor,
 	}
 }
 
