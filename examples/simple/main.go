@@ -25,6 +25,15 @@ type Pet struct {
 	PhotoURLs []string `json:"photoUrls"`
 }
 
+func (pet Pet) IsInCategories(categories []int) bool {
+	for _, c := range categories {
+		if pet.Category == c {
+			return true
+		}
+	}
+	return false
+}
+
 var ErrBadAPICreds = fmt.Errorf("bad API credentials")
 var ErrPetConflict = fmt.Errorf("duplicate pet")
 var ErrPetNotFound = fmt.Errorf("pet not found")
@@ -55,18 +64,19 @@ func (mw *Middlewares) sendResponse(w http.ResponseWriter, res interface{}, err 
 	}
 
 	if err != nil {
-		if _, err := w.Write([]byte(err.Error())); err != nil {
+		if _, err := w.Write([]byte(err.Error() + "\n")); err != nil {
 			log.Println("error writing response:", err)
 		}
 	} else {
-		if err := json.NewEncoder(w).Encode(res); err != nil {
+		encoder := json.NewEncoder(w)
+		encoder.SetIndent("", "  ")
+		if err := encoder.Encode(res); err != nil {
 			log.Println("Error writing response:", err)
 		}
 	}
 }
 
 // ***** Handler Methods *****
-
 // AddPet adds a new pet to the store.
 func (h *PetStoreHandler) AddPet(pet Pet) error {
 	if _, found := h.pets[pet.Name]; found {
@@ -121,6 +131,30 @@ func (h *PetStoreHandler) UpdatePet(params UpdateParams) error {
 	return nil
 }
 
+type FilterPetParams struct {
+	Categories *[]int `http:"query=categories"`
+	HasPhotos  *bool  `http:"query=hasPhotos"`
+}
+
+// FilterPets returns a list of pets that match the parameters given.
+func (h *PetStoreHandler) FilterPets(params FilterPetParams) []Pet {
+	res := []Pet{}
+	for _, pet := range h.pets {
+		if params.HasPhotos != nil && len(pet.PhotoURLs) == 0 {
+			continue
+		} else if params.Categories != nil && !pet.IsInCategories(*params.Categories) {
+			continue
+		}
+		res = append(res, *pet)
+	}
+	return res
+}
+
+func (h *PetStoreHandler) ClearStore() error {
+	h.pets = map[string]*Pet{}
+	return nil
+}
+
 func main() {
 	r := mux.NewRouter()
 
@@ -134,8 +168,11 @@ func main() {
 
 	r.Handle("/pets", wrapper.Wrap(handler.AddPet)).Methods("POST")
 	r.Handle("/pets", wrapper.Wrap(handler.GetPets)).Methods("GET")
+	r.Handle("/pets/filtered", wrapper.Wrap(handler.FilterPets)).Methods("GET")
 	r.Handle("/pets/{name}", wrapper.Wrap(handler.GetPetByName)).Methods("GET")
 	r.Handle("/pets/{name}", wrapper.Wrap(handler.UpdatePet)).Methods("PUT")
+
+	r.Handle("/clear", wrapper.Wrap(handler.ClearStore)).Methods("POST")
 
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":3000", r))
