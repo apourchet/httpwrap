@@ -17,7 +17,7 @@ type Wrapper struct {
 // with the http request and response writer.
 func New() Wrapper {
 	return Wrapper{
-		construct: EmptyConstructor,
+		construct: emptyConstructor,
 	}
 }
 
