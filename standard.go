@@ -2,15 +2,9 @@ package httpwrap
 
 import (
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 )
-
-type HTTPResponse interface {
-	StatusCode() int
-	WriteBody(io.Writer) error
-}
 
 // The StandardConstructor decodes the request using the following:
 // - cookies
@@ -28,17 +22,23 @@ func StandardConstructor() Constructor {
 // StandardResponseWriter will try to cast the error and response objects to the
 // HTTPResponse interface and use them to send the response to the client.
 // By default, it will send a 200 OK and encode the response object as JSON.
+// If the HTTPResponse has a `0` StatusCode, WriteHeader will not be called.
+// If the error is not an HTTPResponse, a 500 status code will be returned with
+// the body being exactly the error's string.
 func StandardResponseWriter() func(w http.ResponseWriter, res any, err error) {
 	return func(w http.ResponseWriter, res any, err error) {
 		if err != nil {
 			if cast, ok := err.(HTTPResponse); ok {
-				w.WriteHeader(cast.StatusCode())
+				code := cast.StatusCode()
+				if code != 0 {
+					w.WriteHeader(cast.StatusCode())
+				}
 				if sendError := cast.WriteBody(w); sendError != nil {
 					log.Println("error writing response:", sendError)
 				}
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)
-				if _, sendError := w.Write([]byte(err.Error() + "\n")); sendError != nil {
+				if _, sendError := w.Write([]byte(err.Error())); sendError != nil {
 					log.Println("error writing response:", sendError)
 				}
 			}
@@ -46,12 +46,14 @@ func StandardResponseWriter() func(w http.ResponseWriter, res any, err error) {
 		}
 
 		if res == nil {
-			w.WriteHeader(http.StatusOK)
 			return
 		}
 
 		if cast, ok := res.(HTTPResponse); ok {
-			w.WriteHeader(cast.StatusCode())
+			code := cast.StatusCode()
+			if code != 0 {
+				w.WriteHeader(cast.StatusCode())
+			}
 			if sendError := cast.WriteBody(w); sendError != nil {
 				log.Println("error writing response:", sendError)
 			}
