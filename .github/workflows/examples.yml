@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Examples
 
 on: [push]
 
@@ -16,10 +16,11 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
-      # You can test your matrix by printing the current Go version
       - name: Display Go version
         run: go version
       - name: Install Dependencies
         run: go mod download
-      - name: Run Unit Tests
-        run: go test -v ./...
+      - name: Compile example code
+        run: go build -o /tmp/executable.exe ./examples/simple
+      - name: Compile example code
+        run: go build -o /tmp/executable.exe ./examples/standard

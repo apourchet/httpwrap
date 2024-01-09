@@ -50,16 +50,18 @@ func NewDecoder() *Decoder {
 }
 
 // Decode will, given a struct definition:
-// type Request struct {
-//		AuthString string   `http:"header=Authorization"`
-//		Limit int           `http:"query=limit"`
-//		Resource string     `http:"segment=resource"`
-//		UserCookie float64  `http:"cookie=user_cookie"`
-// }
+//
+//	type Request struct {
+//			AuthString string   `http:"header=Authorization"`
+//			Limit int           `http:"query=limit"`
+//			Resource string     `http:"segment=resource"`
+//			UserCookie float64  `http:"cookie=user_cookie"`
+//	}
+//
 // The Authorization header will be parsed into the field Token of the
-// request struct
-// The Limit field will come from the query string
-// The Resource field will come from the resource value of the path
+// request struct.
+// The Limit field will come from the query string.
+// The Resource field will come from the resource value of the path.
 func (d *Decoder) Decode(req *http.Request, obj any) error {
 	if err := d.DecodeBody(req, obj); err != nil {
 		return err

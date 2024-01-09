@@ -15,24 +15,24 @@ type HTTPResponse interface {
 	WriteBody(io.Writer) error
 }
 
-// The JSONResponse type implements HTTPResponse. When returned, it will
+// The jsonResponse type implements HTTPResponse. When returned, it will
 // write the status code in the http response's header and JSON encode the
 // body.
-type JSONResponse struct {
+type jsonResponse struct {
 	code int
 	body any
 }
 
 func NewJSONResponse(code int, body any) HTTPResponse {
-	return JSONResponse{
+	return jsonResponse{
 		code: code,
 		body: body,
 	}
 }
 
-func (res JSONResponse) StatusCode() int { return res.code }
+func (res jsonResponse) StatusCode() int { return res.code }
 
-func (res JSONResponse) WriteBody(writer io.Writer) error {
+func (res jsonResponse) WriteBody(writer io.Writer) error {
 	encoder := json.NewEncoder(writer)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(res.body)
