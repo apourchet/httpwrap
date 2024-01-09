@@ -45,6 +45,11 @@ func StandardResponseWriter() func(w http.ResponseWriter, res any, err error) {
 			return
 		}
 
+		if res == nil {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
 		if cast, ok := res.(HTTPResponse); ok {
 			w.WriteHeader(cast.StatusCode())
 			if sendError := cast.WriteBody(w); sendError != nil {
