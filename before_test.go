@@ -25,7 +25,7 @@ func TestBefore(t *testing.T) {
 	})
 
 	t.Run("empty interface", func(t *testing.T) {
-		_, err := newBefore(func(in interface{}) error {
+		_, err := newBefore(func(in any) error {
 			return fmt.Errorf("error")
 		})
 		require.Error(t, err)

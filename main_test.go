@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMain(t *testing.T) {
+func TestInternals(t *testing.T) {
 	t.Run("simple", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		rw := httptest.NewRecorder()
@@ -23,7 +23,7 @@ func TestMain(t *testing.T) {
 	})
 
 	t.Run("empty interface input", func(t *testing.T) {
-		_, err := newMain(func(in interface{}) error {
+		_, err := newMain(func(in any) error {
 			return nil
 		})
 		require.Error(t, err)

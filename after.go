@@ -8,7 +8,7 @@ type afterFn struct {
 	outTypes []reflect.Type
 }
 
-func newAfter(fn interface{}) (afterFn, error) {
+func newAfter(fn any) (afterFn, error) {
 	val := reflect.ValueOf(fn)
 	fnType := val.Type()
 	inTypes, outTypes := []reflect.Type{}, []reflect.Type{}

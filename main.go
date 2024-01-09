@@ -8,7 +8,7 @@ type mainFn struct {
 	outTypes []reflect.Type
 }
 
-func newMain(fn interface{}) (mainFn, error) {
+func newMain(fn any) (mainFn, error) {
 	val := reflect.ValueOf(fn)
 	fnType := val.Type()
 	inTypes, outTypes := []reflect.Type{}, []reflect.Type{}
@@ -30,7 +30,7 @@ func newMain(fn interface{}) (mainFn, error) {
 	}, nil
 }
 
-func (fn mainFn) run(ctx *runctx) interface{} {
+func (fn mainFn) run(ctx *runctx) any {
 	inputs, err := ctx.generate(fn.inTypes)
 	if err != nil {
 		return nil

@@ -48,7 +48,7 @@ func TestWrapper(t *testing.T) {
 		type resp struct{ s string }
 		handler := New().
 			WithConstruct(nopConstructor).
-			Finally(func(res interface{}, err error) {
+			Finally(func(res any, err error) {
 				s := fmt.Sprintf("%v", res)
 				require.True(t, strings.Contains(s, "response"))
 				require.Error(t, err)
@@ -91,7 +91,7 @@ func TestWrapper(t *testing.T) {
 			Before(func(req *http.Request) (meta, error) {
 				return meta{req.URL.Path}, fmt.Errorf("failed before")
 			}).
-			Finally(func(rw http.ResponseWriter, m meta, res interface{}, err error) {
+			Finally(func(rw http.ResponseWriter, m meta, res any, err error) {
 				require.NotNil(t, rw)
 				require.Equal(t, "/test", m.path)
 				require.Nil(t, res)
@@ -119,7 +119,7 @@ func TestWrapper(t *testing.T) {
 				require.NotNil(t, req.URL)
 				return meta{req.URL.Path}, nil
 			}).
-			Finally(func(rw http.ResponseWriter, m meta, res interface{}, err error) {
+			Finally(func(rw http.ResponseWriter, m meta, res any, err error) {
 				require.NotNil(t, rw)
 				require.Equal(t, "/test", m.path)
 				require.Nil(t, res)
@@ -217,7 +217,7 @@ func TestWrapper(t *testing.T) {
 			Before(func() *myerr {
 				return &myerr{}
 			}).
-			Finally(func(rw http.ResponseWriter, res interface{}, err error) {
+			Finally(func(rw http.ResponseWriter, res any, err error) {
 				require.NotNil(t, rw)
 				require.Nil(t, res)
 				require.Error(t, err)
@@ -232,7 +232,7 @@ func TestWrapper(t *testing.T) {
 				return nil
 			}).
 			Wrap(func() {}).
-			Finally(func(rw http.ResponseWriter, res interface{}, err error) {
+			Finally(func(rw http.ResponseWriter, res any, err error) {
 				require.NotNil(t, rw)
 				require.NoError(t, err)
 				rw.WriteHeader(http.StatusCreated)

@@ -21,7 +21,7 @@ var (
 
 // DecodeBody uses a json decoder to decode the body of the request
 // into the target object.
-func DecodeBody(req *http.Request, obj interface{}) error {
+func DecodeBody(req *http.Request, obj any) error {
 	buf := &bytes.Buffer{}
 	defer func() { req.Body = ioutil.NopCloser(buf) }()
 	err := json.NewDecoder(io.TeeReader(req.Body, buf)).Decode(obj)

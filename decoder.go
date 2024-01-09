@@ -34,7 +34,7 @@ type Decoder struct {
 
 // DecodeFunc is the function signature for decoding a request into an
 // object.
-type DecodeFunc func(req *http.Request, obj interface{}) error
+type DecodeFunc func(req *http.Request, obj any) error
 
 // NewDecoder returns a new decoder with sensible defaults for the
 // DecodeBody, Header and Query functions.
@@ -60,7 +60,7 @@ func NewDecoder() *Decoder {
 // request struct
 // The Limit field will come from the query string
 // The Resource field will come from the resource value of the path
-func (d *Decoder) Decode(req *http.Request, obj interface{}) error {
+func (d *Decoder) Decode(req *http.Request, obj any) error {
 	if err := d.DecodeBody(req, obj); err != nil {
 		return err
 	}

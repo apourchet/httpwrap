@@ -8,7 +8,7 @@ type beforeFn struct {
 	outTypes []reflect.Type
 }
 
-func newBefore(fn interface{}) (beforeFn, error) {
+func newBefore(fn any) (beforeFn, error) {
 	val := reflect.ValueOf(fn)
 	fnType := val.Type()
 	inTypes, outTypes := []reflect.Type{}, []reflect.Type{}

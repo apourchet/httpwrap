@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// GenVal generates an interface{} from the string values given.
+// GenVal generates an any from the string values given.
 func GenVal(t reflect.Type, value string, values ...string) (reflect.Value, error) {
 	if len(values) > 0 || t.Kind() == reflect.Slice {
 		return genVals(t, append([]string{value}, values...))
