@@ -7,5 +7,6 @@ import "net/http"
 type Constructor func(http.ResponseWriter, *http.Request, any) error
 
 // EmptyConstructor is the default constructor for new wrappers.
-// It is a no-op.
+// It is a no-op, and will not parse any http request information to construct endpoint
+// parameter objects.
 func EmptyConstructor(http.ResponseWriter, *http.Request, any) error { return nil }

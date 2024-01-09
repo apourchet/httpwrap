@@ -13,7 +13,8 @@ type Wrapper struct {
 	construct Constructor
 }
 
-// New creates a new Wrapper object.
+// New creates a new Wrapper object. This wrapper object will not interact in any way
+// with the http request and response writer.
 func New() Wrapper {
 	return Wrapper{
 		construct: EmptyConstructor,
@@ -42,7 +43,9 @@ func (w Wrapper) Before(fns ...any) Wrapper {
 	return w
 }
 
-// Finally sets the last function that will execute during a request.
+// Finally sets the last function that will execute during a request. This function gets
+// // invoked with the response object and the possible error returned from the main
+// endpoint function.
 func (w Wrapper) Finally(fn any) Wrapper {
 	after, err := newAfter(fn)
 	if err != nil {
@@ -54,37 +57,37 @@ func (w Wrapper) Finally(fn any) Wrapper {
 
 // Wrap sets the main handling function to process requests. This Wrap function must
 // be called to get an `http.Handler` type.
-func (w Wrapper) Wrap(fn any) Handler {
+func (w Wrapper) Wrap(fn any) wrappedHttpHandler {
 	main, err := newMain(fn)
 	if err != nil {
 		panic(err)
 	}
-	return Handler{
+	return wrappedHttpHandler{
 		Wrapper: w,
 		main:    main,
 	}
 }
 
-// Handler is a Wrapper that implements `http.Handler`.
-type Handler struct {
+// wrappedHttpHandler is a Wrapper that implements `http.Handler`.
+type wrappedHttpHandler struct {
 	Wrapper
 	main mainFn
 }
 
 // Before adds the before functions to the underlying Wrapper.
-func (h Handler) Before(fns ...any) Handler {
+func (h wrappedHttpHandler) Before(fns ...any) wrappedHttpHandler {
 	h.Wrapper = h.Wrapper.Before(fns...)
 	return h
 }
 
 // Finally sets the `finally` function of the underlying Wrapper.
-func (h Handler) Finally(fn any) Handler {
+func (h wrappedHttpHandler) Finally(fn any) wrappedHttpHandler {
 	h.Wrapper = h.Wrapper.Finally(fn)
 	return h
 }
 
 // ServeHTTP implements `http.Handler`.
-func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (h wrappedHttpHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ctx := newRunCtx(rw, req, h.construct)
 	err := h.serveBefores(ctx)
 	if err == nil {
@@ -95,7 +98,7 @@ func (h Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (h Handler) serveBefores(ctx *runctx) error {
+func (h wrappedHttpHandler) serveBefores(ctx *runctx) error {
 	for _, before := range h.befores {
 		if err := before.run(ctx); err != nil {
 			return err
