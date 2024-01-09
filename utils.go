@@ -15,7 +15,7 @@ func isError(t reflect.Type) bool {
 	return t.Implements(_errorType)
 }
 
-func typesOf(fn interface{}) ([]reflect.Type, []reflect.Type) {
+func typesOf(fn any) ([]reflect.Type, []reflect.Type) {
 	val := reflect.ValueOf(fn)
 	fnType := val.Type()
 	inTypes, outTypes := []reflect.Type{}, []reflect.Type{}

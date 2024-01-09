@@ -28,7 +28,7 @@ func (w Wrapper) WithConstruct(cons Constructor) Wrapper {
 
 // Before adds a new function that will execute before the main handler. The chain
 // of befores will end if a before returns a non-nil error value.
-func (w Wrapper) Before(fns ...interface{}) Wrapper {
+func (w Wrapper) Before(fns ...any) Wrapper {
 	befores := make([]beforeFn, len(w.befores)+len(fns))
 	copy(befores, w.befores)
 	for i, before := range fns {
@@ -43,7 +43,7 @@ func (w Wrapper) Before(fns ...interface{}) Wrapper {
 }
 
 // Finally sets the last function that will execute during a request.
-func (w Wrapper) Finally(fn interface{}) Wrapper {
+func (w Wrapper) Finally(fn any) Wrapper {
 	after, err := newAfter(fn)
 	if err != nil {
 		panic(err)
@@ -54,7 +54,7 @@ func (w Wrapper) Finally(fn interface{}) Wrapper {
 
 // Wrap sets the main handling function to process requests. This Wrap function must
 // be called to get an `http.Handler` type.
-func (w Wrapper) Wrap(fn interface{}) Handler {
+func (w Wrapper) Wrap(fn any) Handler {
 	main, err := newMain(fn)
 	if err != nil {
 		panic(err)
@@ -72,13 +72,13 @@ type Handler struct {
 }
 
 // Before adds the before functions to the underlying Wrapper.
-func (h Handler) Before(fns ...interface{}) Handler {
+func (h Handler) Before(fns ...any) Handler {
 	h.Wrapper = h.Wrapper.Before(fns...)
 	return h
 }
 
 // Finally sets the `finally` function of the underlying Wrapper.
-func (h Handler) Finally(fn interface{}) Handler {
+func (h Handler) Finally(fn any) Handler {
 	h.Wrapper = h.Wrapper.Finally(fn)
 	return h
 }

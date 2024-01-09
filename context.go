@@ -18,7 +18,7 @@ type runctx struct {
 type param struct {
 	t reflect.Type
 	v reflect.Value
-	i interface{}
+	i any
 }
 
 func newRunCtx(
@@ -30,7 +30,7 @@ func newRunCtx(
 		req:         req,
 		rw:          rw,
 		cons:        cons,
-		response:    reflect.Zero(reflect.TypeOf((*interface{})(nil)).Elem()),
+		response:    reflect.Zero(reflect.TypeOf((*any)(nil)).Elem()),
 		results:     map[reflect.Type]param{},
 		resultSlice: []param{},
 	}
@@ -39,7 +39,7 @@ func newRunCtx(
 	return ctx
 }
 
-func (ctx *runctx) provide(i interface{}) {
+func (ctx *runctx) provide(i any) {
 	if i == nil {
 		return
 	}

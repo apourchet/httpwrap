@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,19 +12,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func nopConstructor(http.ResponseWriter, *http.Request, interface{}) error { return nil }
+func nopConstructor(http.ResponseWriter, *http.Request, any) error { return nil }
 
-func jsonBodyConstructor(_ http.ResponseWriter, req *http.Request, obj interface{}) error {
-	body, err := ioutil.ReadAll(req.Body)
+func jsonBodyConstructor(_ http.ResponseWriter, req *http.Request, obj any) error {
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		return err
 	}
 	err = json.Unmarshal(body, obj)
-	req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+	req.Body = io.NopCloser(bytes.NewBuffer(body))
 	return err
 }
 
-func failedConstructor(http.ResponseWriter, *http.Request, interface{}) error {
+func failedConstructor(http.ResponseWriter, *http.Request, any) error {
 	return fmt.Errorf("error")
 }
 

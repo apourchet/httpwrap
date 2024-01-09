@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -34,46 +32,17 @@ func (pet Pet) IsInCategories(categories []int) bool {
 	return false
 }
 
-var ErrBadAPICreds = fmt.Errorf("bad API credentials")
-var ErrPetConflict = fmt.Errorf("duplicate pet")
-var ErrPetNotFound = fmt.Errorf("pet not found")
+var ErrBadAPICreds = httpwrap.NewHTTPError(http.StatusUnauthorized, "bad API credentials")
+var ErrPetConflict = httpwrap.NewHTTPError(http.StatusConflict, "duplicate pet")
+var ErrPetNotFound = httpwrap.NewHTTPError(http.StatusNotFound, "pet not found")
 
 // ***** Middleware Definitions *****
-type Middlewares struct{}
-
 // checkAPICreds checks the api credentials passed into the request.
-func (mw *Middlewares) checkAPICreds(creds APICredentials) error {
+func checkAPICreds(creds APICredentials) error {
 	if creds.Key == "my-secret-key" {
 		return nil
 	}
 	return ErrBadAPICreds
-}
-
-// sendResponse writes out the response to the client given the output
-// of the handler.
-func (mw *Middlewares) sendResponse(w http.ResponseWriter, res any, err error) {
-	switch err {
-	case ErrBadAPICreds:
-		w.WriteHeader(http.StatusUnauthorized)
-	case ErrPetConflict:
-		w.WriteHeader(http.StatusConflict)
-	case ErrPetNotFound:
-		w.WriteHeader(http.StatusNotFound)
-	default:
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	if err != nil {
-		if _, err := w.Write([]byte(err.Error() + "\n")); err != nil {
-			log.Println("error writing response:", err)
-		}
-	} else {
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		if err := encoder.Encode(res); err != nil {
-			log.Println("Error writing response:", err)
-		}
-	}
 }
 
 // ***** Handler Methods *****
@@ -156,24 +125,19 @@ func (h *PetStoreHandler) ClearStore() error {
 }
 
 func main() {
-	r := mux.NewRouter()
+	router := mux.NewRouter()
 
 	handler := &PetStoreHandler{pets: map[string]*Pet{}}
-	mw := &Middlewares{}
+	wrapper := httpwrap.NewStandardWrapper().Before(checkAPICreds)
 
-	wrapper := httpwrap.New().
-		WithConstruct(httpwrap.StandardConstructor()).
-		Before(mw.checkAPICreds).
-		Finally(mw.sendResponse)
+	router.Handle("/pets", wrapper.Wrap(handler.AddPet)).Methods("POST")
+	router.Handle("/pets", wrapper.Wrap(handler.GetPets)).Methods("GET")
+	router.Handle("/pets/filtered", wrapper.Wrap(handler.FilterPets)).Methods("GET")
+	router.Handle("/pets/{name}", wrapper.Wrap(handler.GetPetByName)).Methods("GET")
+	router.Handle("/pets/{name}", wrapper.Wrap(handler.UpdatePet)).Methods("PUT")
 
-	r.Handle("/pets", wrapper.Wrap(handler.AddPet)).Methods("POST")
-	r.Handle("/pets", wrapper.Wrap(handler.GetPets)).Methods("GET")
-	r.Handle("/pets/filtered", wrapper.Wrap(handler.FilterPets)).Methods("GET")
-	r.Handle("/pets/{name}", wrapper.Wrap(handler.GetPetByName)).Methods("GET")
-	r.Handle("/pets/{name}", wrapper.Wrap(handler.UpdatePet)).Methods("PUT")
+	router.Handle("/clear", wrapper.Wrap(handler.ClearStore)).Methods("POST")
 
-	r.Handle("/clear", wrapper.Wrap(handler.ClearStore)).Methods("POST")
-
-	http.Handle("/", r)
-	log.Fatal(http.ListenAndServe(":3000", r))
+	http.Handle("/", router)
+	log.Fatal(http.ListenAndServe(":3000", router))
 }
