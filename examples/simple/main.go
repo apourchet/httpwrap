@@ -76,7 +76,7 @@ func (mw *Middlewares) sendResponse(w http.ResponseWriter, res any, err error) {
 	}
 }
 
-// ***** wrappedHttpHandler Methods *****
+// ***** Handler Methods *****
 // AddPet adds a new pet to the store.
 func (h *PetStoreHandler) AddPet(pet Pet) error {
 	if _, found := h.pets[pet.Name]; found {
