@@ -39,7 +39,7 @@ func ListMovies(params ListMoviesParams) (ListMoviesResponse, error) {
         return httpwrap.NewHTTPError(http.StatusBadRequest, "Only 2022 movies are searchable.")
     }
 	
-    ....
+    ...
 		
     return ListMoviesResponse{
         Movies: []string{
@@ -77,7 +77,7 @@ import (
 )
 
 func main() {
-    // Tell httpwrapper to run checkAPICreds as middleware before moving on to call
+    // Tell the httpwrapper to run checkAPICreds as middleware before moving on to call
     // the endpoints themselves.
     httpWrapper := httpwrap.NewStandardWrapper().Before(checkAPICreds)
 
@@ -137,11 +137,26 @@ func main() {
     log.Fatal(http.ListenAndServe(":3000", router))
 }
 
-func getUserAccountInfo(req *http.Request) (UserAccountInfo, error) {
+type UserAuthenticationMaterial struct {
+	BearerToken string `http:"header=Authorization"`
+}
+
+func getUserAccountInfo(authMaterial UserAuthenticationMaterial) (UserAccountInfo, error) {
+    userId, err := decodeBearerToken(authMaterial.BearerToken)
+    if err != nil {
+        return httpwrap.NewHTTPError(http.StatusUnauthorized, "Bad authentication material.")
+    }
+
     // Find the user information in the database for instance.
+    accountInfo, err := database.FindUserInformation(userId)
+    if err != nil {
+        return err
+    }
+	
     ...
+	
     return UserAccountInfo{
-        UserID: "12345",
+        UserID: userId,
         UserHasAccess: false,
     }, nil
 }
