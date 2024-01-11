@@ -62,7 +62,6 @@ func StandardResponseWriter() func(w http.ResponseWriter, res any, err error) {
 
 		w.WriteHeader(http.StatusOK)
 		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
 		if sendError := encoder.Encode(res); sendError != nil {
 			log.Println("Error writing response:", sendError)
 		}
