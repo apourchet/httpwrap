@@ -57,7 +57,7 @@ func (w Wrapper) Finally(fn any) Wrapper {
 
 // Wrap sets the main handling function to process requests. This Wrap function must
 // be called to get an `http.Handler` type.
-func (w Wrapper) Wrap(fn any) wrappedHttpHandler {
+func (w Wrapper) Wrap(fn any) http.Handler {
 	main, err := newMain(fn)
 	if err != nil {
 		panic(err)
@@ -72,18 +72,6 @@ func (w Wrapper) Wrap(fn any) wrappedHttpHandler {
 type wrappedHttpHandler struct {
 	Wrapper
 	main mainFn
-}
-
-// Before adds the before functions to the underlying Wrapper.
-func (h wrappedHttpHandler) Before(fns ...any) wrappedHttpHandler {
-	h.Wrapper = h.Wrapper.Before(fns...)
-	return h
-}
-
-// Finally sets the `finally` function of the underlying Wrapper.
-func (h wrappedHttpHandler) Finally(fn any) wrappedHttpHandler {
-	h.Wrapper = h.Wrapper.Finally(fn)
-	return h
 }
 
 // ServeHTTP implements `http.Handler`.

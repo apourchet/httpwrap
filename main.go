@@ -1,6 +1,8 @@
 package httpwrap
 
-import "reflect"
+import (
+	"reflect"
+)
 
 type mainFn struct {
 	val      reflect.Value
