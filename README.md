@@ -43,8 +43,8 @@ func ListMovies(params ListMoviesParams) (ListMoviesResponse, error) {
 		
     return ListMoviesResponse{
         Movies: []string{
-	    "Finding Nemo",
-	    "Good Will Hunting",
+            "Finding Nemo",
+            "Good Will Hunting",
         },
     }
 }
@@ -76,9 +76,26 @@ import (
     "github.com/gorilla/mux"
 )
 
+func main() {
+    // Tell httpwrapper to run checkAPICreds as middleware before moving on to call
+    // the endpoints themselves.
+    httpWrapper := httpwrap.NewStandardWrapper().Before(checkAPICreds)
+
+    // Using gorilla/mux for this example, but httpWrapper.Wrap will turn your regular endpoint
+    // functions into the required http.HandlerFunc type.
+    router := mux.NewRouter()
+    router.Handle("/movies/list", httpWrapper.Wrap(ListMovies)).Methods("GET")
+    router.Handle("/raw-handler", httpWrapper.Wrap(RawHTTPHandler)).Methods("GET")
+    http.Handle("/", router)
+	
+    log.Fatal(http.ListenAndServe(":3000", router))
+}
+
 type APICredentials struct {
     Key string `http:"header=x-application-passcode"`
 }
+
+...
 
 // checkAPICreds checks the api credentials passed into the request. Those APICredentials
 // will be populated using the headers in the http request.
@@ -89,18 +106,64 @@ func checkAPICreds(creds APICredentials) error {
     return httpwrap.NewHTTPError(http.StatusForbidden, "Bad credentials.")
 }
 
-func main() {
-	// Tell httpwrapper to run checkAPICreds as middleware before moving on to call
-	// the endpoints themselves.
-    httpWrapper := httpwrap.NewStandardWrapper().Before(checkAPICreds)
+```
+This example also displays a simple authorization middleware, `checkAPICreds`.
 
-	// Using gorilla/mux for this example, but httpWrapper.Wrap will turn your regular endpoint
-	// functions into the required http.HandlerFunc type.
+## Middleware
+Middlewares can be used to either short-circuit the http request lifecycle and return early, or to provide additional 
+information to the endpoint that gets called after it. The following example uses two separate middleware functions
+to accomplish both.
+```go
+import (
+    "log"
+    "net/http"
+
+    "github.com/apourchet/httpwrap"
+    "github.com/gorilla/mux"
+)
+
+func main() {
+    httpWrapper := httpwrap.NewStandardWrapper().
+        Before(getUserAccountInfo)
+    wrapperWithAccessCheck := httpWrapper.Before(ensureUserAccess)
+	
+    // The listMovies endpoint needs account information only, but the addMovies endpoint also performs
+    // an access list check.
     router := mux.NewRouter()
     router.Handle("/movies/list", httpWrapper.Wrap(ListMovies)).Methods("GET")
-    router.Handle("/raw-handler", httpWrapper.Wrap(RawHTTPHandler)).Methods("GET")
+    router.Handle("/movies/add", wrapperWithAccessCheck.Wrap(AddMovie)).Methods("PUT")
     http.Handle("/", router)
-	
+
     log.Fatal(http.ListenAndServe(":3000", router))
+}
+
+func getUserAccountInfo(req *http.Request) (UserAccountInfo, error) {
+    // Find the user information in the database for instance.
+    ...
+    return UserAccountInfo{
+        UserID: "12345",
+        UserHasAccess: false,
+    }, nil
+}
+
+func ensureUserAccess(accountInfo UserAccountInfo) error {
+    if !accountInfo.UserHasAccess {
+        // Returning an error from a middleware will short-circuit the rest of the request lifecycle and 
+        // early-return this to the client.
+        return httpwrap.NewHTTPError(http.StatusForbidden, "Access forbidden.")
+    }
+    return nil
+}
+
+// The two endpoints below will have access not only to the information provided by the middlewares, but
+// can gather additional parameters from the http request by taking in extra arguments.
+// NOTE: These two endpoints do not _have to_ take in the information from the middleware, so if accountInfo
+// is not actually used in the endpoint, it can be omitted from the function signature altogether.
+func ListMovies(accountInfo UserAccountInfo, params ListMoviesParams) (ListMoviesResponse, error) {
+    ...
+}
+
+func AddMovie(accountInfo UserAccountInfo, params AddMovieParams) (AddMovieResponse, error) {
+    ...
 }
 ```
