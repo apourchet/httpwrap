@@ -7,11 +7,16 @@ import (
 )
 
 // The StandardRequestReader decodes the request using the following:
-// - cookies
-// - query params
-// - path params
-// - headers
-// - JSON decoding of the body
+//
+// - Cookies
+//
+// - Query Params
+//
+// - Request Headers
+//
+// - Request Path Segment (e.g: /api/pets/{id})
+//
+// - JSON Decoding of the http request body
 func StandardRequestReader() RequestReader {
 	decoder := NewDecoder()
 	return func(_ http.ResponseWriter, req *http.Request, obj any) error {
