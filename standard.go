@@ -6,13 +6,13 @@ import (
 	"net/http"
 )
 
-// The StandardConstructor decodes the request using the following:
+// The StandardRequestReader decodes the request using the following:
 // - cookies
 // - query params
 // - path params
 // - headers
 // - JSON decoding of the body
-func StandardConstructor() Constructor {
+func StandardRequestReader() Constructor {
 	decoder := NewDecoder()
 	return func(rw http.ResponseWriter, req *http.Request, obj any) error {
 		return decoder.Decode(req, obj)
@@ -68,10 +68,10 @@ func StandardResponseWriter() func(w http.ResponseWriter, res any, err error) {
 	}
 }
 
-// NewStandardWrapper returns a new wrapper using the StandardConstructor and the
+// NewStandardWrapper returns a new wrapper using the StandardRequestReader and the
 // StandardResponseWriter.
 func NewStandardWrapper() Wrapper {
-	constructor := StandardConstructor()
+	constructor := StandardRequestReader()
 	responseWriter := StandardResponseWriter()
 	return New().
 		WithConstruct(constructor).

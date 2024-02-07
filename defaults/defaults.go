@@ -1,4 +1,4 @@
-package internal
+package defaults
 
 import (
 	"bytes"
@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -23,7 +22,7 @@ var (
 // into the target object.
 func DecodeBody(req *http.Request, obj any) error {
 	buf := &bytes.Buffer{}
-	defer func() { req.Body = ioutil.NopCloser(buf) }()
+	defer func() { req.Body = io.NopCloser(buf) }()
 	err := json.NewDecoder(io.TeeReader(req.Body, buf)).Decode(obj)
 	if err == io.EOF {
 		return nil
@@ -45,14 +44,14 @@ func GetHeader(req *http.Request, key string) (string, error) {
 // information resurface.
 func GetSegment(req *http.Request, key string) (string, error) {
 	// We need some insight into the parsing of the request path if we
-	// want access to this information. Therefore we expect this to be
+	// want access to this information. Therefore, we expect this to be
 	// user-supplied. As a default, we use gorilla's mux package to
 	// fetch the right variables.
-	pathval := mux.Vars(req)[key]
-	if pathval == "" {
+	segmentVal := mux.Vars(req)[key]
+	if segmentVal == "" {
 		return "", ErrValueNotFound
 	}
-	return pathval, nil
+	return segmentVal, nil
 }
 
 // GetQueries returns the list of values that this query parameter
