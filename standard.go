@@ -6,15 +6,20 @@ import (
 	"net/http"
 )
 
-// The StandardConstructor decodes the request using the following:
-// - cookies
-// - query params
-// - path params
-// - headers
-// - JSON decoding of the body
-func StandardConstructor() Constructor {
+// The StandardRequestReader decodes the request using the following:
+//
+// - Cookies
+//
+// - Query Params
+//
+// - Request Headers
+//
+// - Request Path Segment (e.g: /api/pets/{id})
+//
+// - JSON Decoding of the http request body
+func StandardRequestReader() RequestReader {
 	decoder := NewDecoder()
-	return func(rw http.ResponseWriter, req *http.Request, obj any) error {
+	return func(_ http.ResponseWriter, req *http.Request, obj any) error {
 		return decoder.Decode(req, obj)
 	}
 }
@@ -25,8 +30,8 @@ func StandardConstructor() Constructor {
 // If the HTTPResponse has a `0` StatusCode, WriteHeader will not be called.
 // If the error is not an HTTPResponse, a 500 status code will be returned with
 // the body being exactly the error's string.
-func StandardResponseWriter() func(w http.ResponseWriter, res any, err error) {
-	return func(w http.ResponseWriter, res any, err error) {
+func StandardResponseWriter() ResponseWriter {
+	return func(w http.ResponseWriter, _ *http.Request, res any, err error) {
 		if err != nil {
 			if cast, ok := err.(HTTPResponse); ok {
 				code := cast.StatusCode()
@@ -68,12 +73,12 @@ func StandardResponseWriter() func(w http.ResponseWriter, res any, err error) {
 	}
 }
 
-// NewStandardWrapper returns a new wrapper using the StandardConstructor and the
+// NewStandardWrapper returns a new wrapper using the StandardRequestReader and the
 // StandardResponseWriter.
 func NewStandardWrapper() Wrapper {
-	constructor := StandardConstructor()
+	constructor := StandardRequestReader()
 	responseWriter := StandardResponseWriter()
 	return New().
-		WithConstruct(constructor).
+		WithRequestReader(constructor).
 		Finally(responseWriter)
 }

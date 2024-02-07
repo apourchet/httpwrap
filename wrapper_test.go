@@ -17,7 +17,7 @@ func TestWrapper(t *testing.T) {
 
 		type meta struct{}
 		handler := New().
-			WithConstruct(nopConstructor).
+			WithRequestReader(nopConstructor).
 			Wrap(func(rw http.ResponseWriter, req *http.Request) error {
 				require.NotNil(t, rw)
 				require.Equal(t, "GET", req.Method)
@@ -28,7 +28,7 @@ func TestWrapper(t *testing.T) {
 
 		rw = httptest.NewRecorder()
 		handler = New().
-			WithConstruct(nopConstructor).
+			WithRequestReader(nopConstructor).
 			Wrap(func(m *meta, m1 map[int]int, m2 []string) error {
 				require.NotNil(t, m)
 				require.NotNil(t, m1)
@@ -47,7 +47,7 @@ func TestWrapper(t *testing.T) {
 
 		type resp struct{ s string }
 		handler := New().
-			WithConstruct(nopConstructor).
+			WithRequestReader(nopConstructor).
 			Finally(func(res any, err error) {
 				s := fmt.Sprintf("%v", res)
 				require.True(t, strings.Contains(s, "response"))
@@ -67,7 +67,7 @@ func TestWrapper(t *testing.T) {
 
 		type meta struct{ path string }
 		handler := New().
-			WithConstruct(nopConstructor).
+			WithRequestReader(nopConstructor).
 			Before(func(req *http.Request) meta {
 				require.NotNil(t, req)
 				require.NotNil(t, req.URL)
@@ -87,7 +87,7 @@ func TestWrapper(t *testing.T) {
 
 		type meta struct{ path string }
 		handler := New().
-			WithConstruct(nopConstructor).
+			WithRequestReader(nopConstructor).
 			Before(func(req *http.Request) (meta, error) {
 				return meta{req.URL.Path}, fmt.Errorf("failed before")
 			}).
@@ -113,7 +113,7 @@ func TestWrapper(t *testing.T) {
 		type resp struct{}
 		type meta struct{ path string }
 		handler := New().
-			WithConstruct(nopConstructor).
+			WithRequestReader(nopConstructor).
 			Before(func(req *http.Request) (meta, error) {
 				require.NotNil(t, req)
 				require.NotNil(t, req.URL)
@@ -139,7 +139,7 @@ func TestWrapper(t *testing.T) {
 
 		type meta struct{}
 		handler := New().
-			WithConstruct(failedConstructor).
+			WithRequestReader(failedConstructor).
 			Before(func(m meta) {
 				require.FailNow(t, "should not get to before")
 			}).
@@ -163,7 +163,7 @@ func TestWrapper(t *testing.T) {
 		type extra struct{ Field1 string }
 		type mainArg struct{ Field2 string }
 		handler := New().
-			WithConstruct(jsonBodyConstructor).
+			WithRequestReader(jsonBodyConstructor).
 			Before(func(m meta) extra {
 				require.Equal(t, "metafield", m.Metafield)
 				return extra{"field1"}
@@ -189,7 +189,7 @@ func TestWrapper(t *testing.T) {
 		type body string
 		type extra struct{ Field1 string }
 		handler := New().
-			WithConstruct(jsonBodyConstructor).
+			WithRequestReader(jsonBodyConstructor).
 			Before(func(b body) extra {
 				require.Equal(t, "this is JSON", string(b))
 				return extra{"field1"}
@@ -212,7 +212,7 @@ func TestWrapper(t *testing.T) {
 		rw := httptest.NewRecorder()
 
 		handler := New().
-			WithConstruct(nopConstructor).
+			WithRequestReader(nopConstructor).
 			Before(func() *myerr {
 				return &myerr{}
 			}).
@@ -227,7 +227,7 @@ func TestWrapper(t *testing.T) {
 		require.Equal(t, http.StatusCreated, rw.Result().StatusCode)
 
 		handler = New().
-			WithConstruct(nopConstructor).
+			WithRequestReader(nopConstructor).
 			Before(func() *myerr {
 				return nil
 			}).

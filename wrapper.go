@@ -10,19 +10,19 @@ import (
 type Wrapper struct {
 	befores   []beforeFn
 	after     *afterFn
-	construct Constructor
+	construct RequestReader
 }
 
 // New creates a new Wrapper object. This wrapper object will not interact in any way
 // with the http request and response writer.
 func New() Wrapper {
 	return Wrapper{
-		construct: emptyConstructor,
+		construct: emptyRequestReader,
 	}
 }
 
-// WithConstruct returns a new wrapper with the given Constructor function.
-func (w Wrapper) WithConstruct(cons Constructor) Wrapper {
+// WithRequestReader returns a new wrapper with the given RequestReader function.
+func (w Wrapper) WithRequestReader(cons RequestReader) Wrapper {
 	w.construct = cons
 	return w
 }
@@ -44,7 +44,7 @@ func (w Wrapper) Before(fns ...any) Wrapper {
 }
 
 // Finally sets the last function that will execute during a request. This function gets
-// // invoked with the response object and the possible error returned from the main
+// invoked with the response object and the possible error returned from the main
 // endpoint function.
 func (w Wrapper) Finally(fn any) Wrapper {
 	after, err := newAfter(fn)
