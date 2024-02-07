@@ -8,7 +8,7 @@ import (
 type runctx struct {
 	rw   http.ResponseWriter
 	req  *http.Request
-	cons Constructor
+	cons RequestReader
 
 	response    reflect.Value
 	results     map[reflect.Type]param
@@ -24,7 +24,7 @@ type param struct {
 func newRunCtx(
 	rw http.ResponseWriter,
 	req *http.Request,
-	cons Constructor,
+	cons RequestReader,
 ) *runctx {
 	ctx := &runctx{
 		req:         req,

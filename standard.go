@@ -12,9 +12,9 @@ import (
 // - path params
 // - headers
 // - JSON decoding of the body
-func StandardRequestReader() Constructor {
+func StandardRequestReader() RequestReader {
 	decoder := NewDecoder()
-	return func(rw http.ResponseWriter, req *http.Request, obj any) error {
+	return func(_ http.ResponseWriter, req *http.Request, obj any) error {
 		return decoder.Decode(req, obj)
 	}
 }
@@ -25,8 +25,8 @@ func StandardRequestReader() Constructor {
 // If the HTTPResponse has a `0` StatusCode, WriteHeader will not be called.
 // If the error is not an HTTPResponse, a 500 status code will be returned with
 // the body being exactly the error's string.
-func StandardResponseWriter() func(w http.ResponseWriter, res any, err error) {
-	return func(w http.ResponseWriter, res any, err error) {
+func StandardResponseWriter() ResponseWriter {
+	return func(w http.ResponseWriter, _ *http.Request, res any, err error) {
 		if err != nil {
 			if cast, ok := err.(HTTPResponse); ok {
 				code := cast.StatusCode()
@@ -74,6 +74,6 @@ func NewStandardWrapper() Wrapper {
 	constructor := StandardRequestReader()
 	responseWriter := StandardResponseWriter()
 	return New().
-		WithConstruct(constructor).
+		WithRequestReader(constructor).
 		Finally(responseWriter)
 }

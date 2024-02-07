@@ -162,7 +162,7 @@ func main() {
 	mw := &Middlewares{}
 
 	wrapper := httpwrap.New().
-		WithConstruct(httpwrap.StandardRequestReader()).
+		WithRequestReader(httpwrap.StandardRequestReader()).
 		Before(mw.checkAPICreds).
 		Finally(mw.sendResponse)
 
