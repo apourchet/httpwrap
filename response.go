@@ -37,3 +37,16 @@ func (res jsonResponse) WriteBody(writer io.Writer) error {
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(res.body)
 }
+
+type noopResponse struct{}
+
+// NewNoopResponse returns an HTTPResponse that will completely bypass the
+// deserialization logic. This can be used when the endpoint or middleware
+// operates directly on the native http.ResponseWriter.
+func NewNoopResponse() HTTPResponse {
+	return &noopResponse{}
+}
+
+func (res noopResponse) StatusCode() int { return 0 }
+
+func (res noopResponse) WriteBody(writer io.Writer) error { return nil }

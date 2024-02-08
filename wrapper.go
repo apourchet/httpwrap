@@ -1,6 +1,7 @@
 package httpwrap
 
 import (
+	"errors"
 	"net/http"
 	"reflect"
 )
@@ -87,9 +88,24 @@ func (h wrappedHttpHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request)
 }
 
 func (h wrappedHttpHandler) serveBefores(ctx *runctx) error {
+	httpResponseType := reflect.TypeOf((*HTTPResponse)(nil)).Elem()
 	for _, before := range h.befores {
 		if err := before.run(ctx); err != nil {
 			return err
+		}
+		possibleHttpResponses, err := ctx.generate([]reflect.Type{
+			httpResponseType,
+		})
+		if err != nil {
+			continue
+		}
+
+		for _, response := range possibleHttpResponses {
+			if ok := response.Type().Implements(httpResponseType); ok {
+				if !response.IsNil() {
+					return errors.New("early middleware return")
+				}
+			}
 		}
 	}
 	return nil
