@@ -137,6 +137,29 @@ func TestStandardWrapper(t *testing.T) {
 		require.Equal(t, http.StatusUnauthorized, statusCode)
 		require.Equal(t, "Unauthorized.", body)
 	})
+
+	t.Run("middleware shortcircuit with nooperror", func(t *testing.T) {
+		wrapper := NewStandardWrapper().
+			Before(func(rw http.ResponseWriter) error {
+				rw.WriteHeader(http.StatusCreated)
+				rw.Write([]byte("HELLO WORLD"))
+				return NewNoopError()
+			})
+
+		handler := wrapper.Wrap(func(p1 header, p2 query, context typedContext) error {
+			require.Fail(t, "Handler should never be called.")
+			return nil
+		})
+
+		rw := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/endpoint?string=abc", nil)
+		req.Header.Set("integer", "12")
+
+		handler.ServeHTTP(rw, req)
+		statusCode, body := readResponseRecorder(t, rw)
+		require.Equal(t, http.StatusCreated, statusCode)
+		require.Equal(t, "HELLO WORLD", body)
+	})
 }
 
 func readResponseRecorder(t *testing.T, rw *httptest.ResponseRecorder) (int, string) {

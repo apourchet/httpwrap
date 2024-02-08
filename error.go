@@ -34,3 +34,8 @@ func (err httpError) WriteBody(writer io.Writer) error {
 	_, writeError := io.WriteString(writer, err.body)
 	return writeError
 }
+
+// NewNoopError returns an HTTPError that will completely bypass the
+// deserialization logic. This can be used when the endpoint or middleware
+// operates directly on the native http.ResponseWriter.
+func NewNoopError() HTTPError { return NewHTTPError(0, "") }
