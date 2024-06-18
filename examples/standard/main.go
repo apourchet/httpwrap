@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/apourchet/httpwrap"
-	"github.com/gorilla/mux"
 )
 
 // ***** Type Definitions *****
@@ -125,18 +124,17 @@ func (h *PetStoreHandler) ClearStore() error {
 }
 
 func main() {
-	router := mux.NewRouter()
-
 	handler := &PetStoreHandler{pets: map[string]*Pet{}}
 	wrapper := httpwrap.NewStandardWrapper().Before(checkAPICreds)
 
-	router.Handle("/pets", wrapper.Wrap(handler.AddPet)).Methods("POST")
-	router.Handle("/pets", wrapper.Wrap(handler.GetPets)).Methods("GET")
-	router.Handle("/pets/filtered", wrapper.Wrap(handler.FilterPets)).Methods("GET")
-	router.Handle("/pets/{name}", wrapper.Wrap(handler.GetPetByName)).Methods("GET")
-	router.Handle("/pets/{name}", wrapper.Wrap(handler.UpdatePet)).Methods("PUT")
+	router := http.NewServeMux()
+	router.Handle("POST /pets", wrapper.Wrap(handler.AddPet))
+	router.Handle("GET /pets", wrapper.Wrap(handler.GetPets))
+	router.Handle("GET /pets/filtered", wrapper.Wrap(handler.FilterPets))
+	router.Handle("GET /pets/{name}", wrapper.Wrap(handler.GetPetByName))
+	router.Handle("PUT /pets/{name}", wrapper.Wrap(handler.UpdatePet))
 
-	router.Handle("/clear", wrapper.Wrap(handler.ClearStore)).Methods("POST")
+	router.Handle("POST /clear", wrapper.Wrap(handler.ClearStore))
 
 	http.Handle("/", router)
 	log.Fatal(http.ListenAndServe(":3000", router))

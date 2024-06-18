@@ -43,15 +43,18 @@ func GetHeader(req *http.Request, key string) (string, error) {
 // knowing how the server mux has altered the request to let this
 // information resurface.
 func GetSegment(req *http.Request, key string) (string, error) {
+	if segmentVal := req.PathValue(key); segmentVal != "" {
+		return segmentVal, nil
+	}
+
 	// We need some insight into the parsing of the request path if we
 	// want access to this information. Therefore, we expect this to be
 	// user-supplied. As a default, we use gorilla's mux package to
 	// fetch the right variables.
-	segmentVal := mux.Vars(req)[key]
-	if segmentVal == "" {
-		return "", ErrValueNotFound
+	if segmentVal := mux.Vars(req)[key]; segmentVal != "" {
+		return segmentVal, nil
 	}
-	return segmentVal, nil
+	return "", ErrValueNotFound
 }
 
 // GetQueries returns the list of values that this query parameter
