@@ -66,7 +66,9 @@ func StandardResponseWriter() ResponseWriter {
 		}
 
 		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
 		encoder := json.NewEncoder(w)
+		encoder.SetEscapeHTML(false)
 		if sendError := encoder.Encode(res); sendError != nil {
 			log.Println("Error writing response:", sendError)
 		}
