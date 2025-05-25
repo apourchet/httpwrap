@@ -1,6 +1,6 @@
 module github.com/apourchet/httpwrap
 
-go 1.22
+go 1.24
 
 require (
 	github.com/gorilla/mux v1.7.2
